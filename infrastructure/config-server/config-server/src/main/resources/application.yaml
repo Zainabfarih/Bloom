@@ -2,14 +2,10 @@ server.port: 8888
 spring:
   application:
     name: config-server
-  profiles:
-    active: native
-    cloud:
-      config:
-        server:
-          native:
-            search-locations: classpath:/
-eureka:
-  client:
-    register-with-eureka: false
-    fetch-registry: false
+  cloud:
+    config:
+      server:
+        git:
+          uri: file:///C:/Users/uranu/DESKTOP_V2.0/ENSIAS/2A/S4/PROJET-DEVOPS/BLOOM
+          default-label: infrastructure
+          search-paths: config-repo
