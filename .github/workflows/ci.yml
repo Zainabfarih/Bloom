@@ -573,7 +573,7 @@ jobs:
         with: { java-version: '17', distribution: 'temurin', cache: maven }
       - name: Compile
         run: mvn clean compile -q
-        working-directory: infrastructure/config-server/config-server
+        working-directory: infrastructure/config-server
 
   config-server-level2:
     name: "[config-server] Niveau 2 — Tests"
@@ -585,7 +585,7 @@ jobs:
         with: { java-version: '17', distribution: 'temurin', cache: maven }
       - name: Tests
         run: mvn test
-        working-directory: infrastructure/config-server/config-server
+        working-directory: infrastructure/config-server
 
   config-server-level3:
     name: "[config-server] Niveau 3 — Build final"
@@ -603,10 +603,10 @@ jobs:
             exit 1
           fi
           echo "Version SNAPSHOT OK : $VERSION"
-        working-directory: infrastructure/config-server/config-server
+        working-directory: infrastructure/config-server
       - name: Package final
         run: mvn package -DskipTests
-        working-directory: infrastructure/config-server/config-server
+        working-directory: infrastructure/config-server
 
 
   # ════════════════════════════════════════════════════════════════
@@ -623,7 +623,7 @@ jobs:
         with: { java-version: '17', distribution: 'temurin', cache: maven }
       - name: Compile
         run: mvn clean compile -q
-        working-directory: infrastructure/discovery-server/discovery-server
+        working-directory: infrastructure/discovery-server
 
   discovery-server-level2:
     name: "[discovery-server] Niveau 2 — Tests"
@@ -635,7 +635,7 @@ jobs:
         with: { java-version: '17', distribution: 'temurin', cache: maven }
       - name: Tests
         run: mvn test
-        working-directory: infrastructure/discovery-server/discovery-server
+        working-directory: infrastructure/discovery-server
 
   discovery-server-level3:
     name: "[discovery-server] Niveau 3 — Build final"
@@ -653,10 +653,10 @@ jobs:
             exit 1
           fi
           echo "Version SNAPSHOT OK : $VERSION"
-        working-directory: infrastructure/discovery-server/discovery-server
+        working-directory: infrastructure/discovery-server
       - name: Package final
         run: mvn package -DskipTests
-        working-directory: infrastructure/discovery-server/discovery-server
+        working-directory: infrastructure/discovery-server
 
 
   # ════════════════════════════════════════════════════════════════
@@ -673,7 +673,7 @@ jobs:
         with: { java-version: '17', distribution: 'temurin', cache: maven }
       - name: Compile
         run: mvn clean compile -q
-        working-directory: infrastructure/api-gateway/api-gateway
+        working-directory: infrastructure/api-gateway
 
   api-gateway-level2:
     name: "[api-gateway] Niveau 2 — Tests"
@@ -685,7 +685,7 @@ jobs:
         with: { java-version: '17', distribution: 'temurin', cache: maven }
       - name: Tests
         run: mvn test
-        working-directory: infrastructure/api-gateway/api-gateway
+        working-directory: infrastructure/api-gateway
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET_CI }}
 
@@ -705,10 +705,10 @@ jobs:
             exit 1
           fi
           echo "Version SNAPSHOT OK : $VERSION"
-        working-directory: infrastructure/api-gateway/api-gateway
+        working-directory: infrastructure/api-gateway
       - name: Package final
         run: mvn package -DskipTests
-        working-directory: infrastructure/api-gateway/api-gateway
+        working-directory: infrastructure/api-gateway
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET_CI }}
 
@@ -727,7 +727,7 @@ jobs:
         with: { java-version: '17', distribution: 'temurin', cache: maven }
       - name: Compile
         run: mvn clean compile -q
-        working-directory: infrastructure/admin-server/admin-server
+        working-directory: infrastructure/admin-server
 
   admin-server-level2:
     name: "[admin-server] Niveau 2 — Tests"
@@ -739,7 +739,7 @@ jobs:
         with: { java-version: '17', distribution: 'temurin', cache: maven }
       - name: Tests
         run: mvn test
-        working-directory: infrastructure/admin-server/admin-server
+        working-directory: infrastructure/admin-server
 
   admin-server-level3:
     name: "[admin-server] Niveau 3 — Build final"
@@ -757,10 +757,10 @@ jobs:
             exit 1
           fi
           echo "Version SNAPSHOT OK : $VERSION"
-        working-directory: infrastructure/admin-server/admin-server
+        working-directory: infrastructure/admin-server
       - name: Package final
         run: mvn package -DskipTests
-        working-directory: infrastructure/admin-server/admin-server
+        working-directory: infrastructure/admin-server
 
 
   # ════════════════════════════════════════════════════════════════
