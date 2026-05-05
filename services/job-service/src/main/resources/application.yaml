@@ -1,3 +1,16 @@
+server:
+  port: 8081
+
 spring:
   application:
     name: job-service
+
+  datasource:
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USERNAME}
+    password: ${SUPABASE_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate    # Hibernate ne touche pas la DB, il vérifie juste
+  flyway:
+    enabled: true
