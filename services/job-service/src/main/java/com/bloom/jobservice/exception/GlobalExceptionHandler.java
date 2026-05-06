@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(JobsApiException.class)
-    public ResponseEntity<ErrorResponse> handleSerpApi(JobsApiException ex) {
+    public ResponseEntity<ErrorResponse> handleJobsApi(JobsApiException ex) {
         // Message générique — ne jamais exposer les détails de l'API externe
         log.error("JobsAPI error: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

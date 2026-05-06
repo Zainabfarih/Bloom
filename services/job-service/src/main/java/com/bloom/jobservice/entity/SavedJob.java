@@ -20,7 +20,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserJob {
+public class SavedJob {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

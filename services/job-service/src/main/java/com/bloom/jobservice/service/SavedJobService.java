@@ -3,11 +3,11 @@ package com.bloom.jobservice.service;
 import com.bloom.jobservice.dto.SkillsDTO;
 import com.bloom.jobservice.dto.SaveJobRequest;
 import com.bloom.jobservice.dto.SavedJobResponse;
-import com.bloom.jobservice.entity.UserJob;
+import com.bloom.jobservice.entity.SavedJob;
 import com.bloom.jobservice.exception.ResourceNotFoundException;
 import com.bloom.jobservice.external.CvServiceClient;
-import com.bloom.jobservice.mapper.UserJobMapper;
-import com.bloom.jobservice.repository.UserJobRepository;
+import com.bloom.jobservice.mapper.SavedJobMapper;
+import com.bloom.jobservice.repository.SavedJobRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,10 +19,10 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserJobService {
+public class SavedJobService {
 
-    private final UserJobRepository userJobRepository;
-    private final UserJobMapper userJobMapper;
+    private final SavedJobRepository savedJobRepository;
+    private final SavedJobMapper savedJobMapper;
     private final SkillMatchingService skillMatchingService;
     private final CvServiceClient cvServiceClient;
 
@@ -31,9 +31,9 @@ public class UserJobService {
                                     SaveJobRequest request,
                                     String bearerToken) {
         // Idempotent — si déjà sauvegardé, retourner l'existant
-        return userJobRepository
+        return savedJobRepository
                 .findByUserIdAndJobExternalId(userId, request.getJobExternalId())
-                .map(UserJobMapper::toResponse)
+                .map(SavedJobMapper::toResponse)
                 .orElseGet(() -> {
 
                     // Récupérer les skills depuis cv-service
@@ -51,37 +51,37 @@ public class UserJobService {
                     request.setCompatibilityScore(
                             skillMatchingService.computeScore(required, userSkills));
 
-                    UserJob job = userJobRepository.save(
-                            userJobMapper.toEntity(request, userId));
+                    SavedJob job = savedJobRepository.save(
+                            savedJobMapper.toEntity(request, userId));
 
-                    return UserJobMapper.toResponse(job);
+                    return SavedJobMapper.toResponse(job);
                 });
     }
 
     @Transactional(readOnly = true)
-    public List<SavedJobResponse> getUserJobs(Long studentId) {
-        return userJobRepository
-                .findByUserIdOrderByCompatibilityScoreDesc(studentId)
+    public List<SavedJobResponse> getSavedJobs(Long userId) {
+        return savedJobRepository
+                .findByUserIdOrderByCompatibilityScoreDesc(userId)
                 .stream()
-                .map(UserJobMapper::toResponse)
+                .map(SavedJobMapper::toResponse)
                 .toList();
     }
 
     @Transactional
-    public void removeSavedJob(Long studentId, String jobExternalId) {
-        if (!userJobRepository
-                .existsByUserIdAndJobExternalId(studentId, jobExternalId)) {
+    public void removeSavedJob(Long userId, String jobExternalId) {
+        if (!savedJobRepository
+                .existsByUserIdAndJobExternalId(userId, jobExternalId)) {
             throw new ResourceNotFoundException("User job not found");
         }
-        userJobRepository
-                .deleteByUserIdAndJobExternalId(studentId, jobExternalId);
+        savedJobRepository
+                .deleteByUserIdAndJobExternalId(userId, jobExternalId);
     }
 
     @Transactional(readOnly = true)
     public SavedJobResponse getByUuid(Long userId, UUID uuid) {
-        return userJobRepository.findByUuid(uuid)
+        return savedJobRepository.findByUuid(uuid)
                 .filter(j -> j.getUserId().equals(userId))
-                .map(UserJobMapper::toResponse)
+                .map(SavedJobMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Saved job not found: " + uuid));
     }

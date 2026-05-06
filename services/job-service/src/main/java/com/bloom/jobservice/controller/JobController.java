@@ -3,8 +3,8 @@ package com.bloom.jobservice.controller;
 import com.bloom.jobservice.dto.JobSearchResponse;
 import com.bloom.jobservice.dto.SaveJobRequest;
 import com.bloom.jobservice.dto.SavedJobResponse;
-import com.bloom.jobservice.service.JobSearchService;
-import com.bloom.jobservice.service.UserJobService;
+import com.bloom.jobservice.service.JobService;
+import com.bloom.jobservice.service.SavedJobService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -19,13 +19,13 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/jobs")
+@RequestMapping("/api/job")
 @RequiredArgsConstructor
 @Tag(name = "Jobs", description = "Search jobs and manage favourites")
 public class JobController {
 
-    private final JobSearchService jobSearchService;
-    private final UserJobService  userJobService;
+    private final JobService jobService;
+    private final SavedJobService savedJobService;
 
     // ─── Search ──────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ public class JobController {
             @RequestParam(required = false) String location) {
 
         return ResponseEntity.ok(
-                jobSearchService.searchJobs(query, location));
+                jobService.searchJobs(query, location));
     }
 
     // ─── Favourites ───────────────────────────────────────────
@@ -51,7 +51,7 @@ public class JobController {
         Long userId = (Long) auth.getPrincipal();
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(userJobService.saveJob(userId, request, bearerToken));
+                .body(savedJobService.saveJob(userId, request, bearerToken));
     }
 
     @GetMapping("/saved")
@@ -61,28 +61,28 @@ public class JobController {
 
         Long userId = (Long) auth.getPrincipal();
         return ResponseEntity.ok(
-                userJobService.getUserJobs(userId));
+                savedJobService.getSavedJobs(userId));
     }
 
     @GetMapping("/saved/{uuid}")
     @Operation(summary = "Get one saved job by UUID — consumed by roadmap-service")
-    public ResponseEntity<SavedJobResponse> getOne(
+    public ResponseEntity<SavedJobResponse> getSavedJobByUuid(
             @PathVariable UUID uuid,
             Authentication auth) {
 
         Long userId = (Long) auth.getPrincipal();
         return ResponseEntity.ok(
-                userJobService.getByUuid(userId, uuid));
+                savedJobService.getByUuid(userId, uuid));
     }
 
     @DeleteMapping("/saved/{jobExternalId}")
     @Operation(summary = "Remove a job from favourites")
-    public ResponseEntity<Void> remove(
+    public ResponseEntity<Void> removeSavedJob(
             @PathVariable String jobExternalId,
             Authentication auth) {
 
         Long userId = (Long) auth.getPrincipal();
-        userJobService.removeSavedJob(userId, jobExternalId);
+        savedJobService.removeSavedJob(userId, jobExternalId);
         return ResponseEntity.noContent().build();
     }
 
@@ -95,7 +95,7 @@ public class JobController {
             @RequestParam String query,
             @RequestParam(required = false) String location) {
 
-        jobSearchService.evictCache(query, location);
+        jobService.evictCache(query, location);
         return ResponseEntity.noContent().build();
     }
 }

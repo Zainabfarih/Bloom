@@ -2,7 +2,7 @@ package com.bloom.jobservice.mapper;
 
 import com.bloom.jobservice.dto.SaveJobRequest;
 import com.bloom.jobservice.dto.SavedJobResponse;
-import com.bloom.jobservice.entity.UserJob;
+import com.bloom.jobservice.entity.SavedJob;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Mapper(componentModel = "spring")
-public interface UserJobMapper {
+public interface SavedJobMapper {
 
     @Mapping(target = "id",      ignore = true)
     @Mapping(target = "uuid",    ignore = true)
@@ -28,7 +28,7 @@ public interface UserJobMapper {
     @Mapping(target = "missingSkills",
             expression = "java(toArray(req.getMissingSkills()))")
     @Mapping(target = "compatibilityScore", source = "req.compatibilityScore")
-    UserJob toEntity(SaveJobRequest req, Long userId);
+    SavedJob toEntity(SaveJobRequest req, Long userId);
 
     @Mapping(target = "requiredSkills",
             expression = "java(toList(entity.getRequiredSkills()))")
@@ -36,7 +36,7 @@ public interface UserJobMapper {
             expression = "java(toList(entity.getMatchedSkills()))")
     @Mapping(target = "missingSkills",
             expression = "java(toList(entity.getMissingSkills()))")
-    static SavedJobResponse toResponse(UserJob entity);
+    static SavedJobResponse toResponse(SavedJob entity);
 
     default String[] toArray(List<String> list) {
         return list == null ? new String[0] : list.toArray(String[]::new);

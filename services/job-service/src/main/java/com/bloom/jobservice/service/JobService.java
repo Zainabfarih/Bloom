@@ -21,9 +21,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class JobSearchService {
+public class JobService {
 
-    private final JobsApiClient              jobsApiClient;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${jobapi.key}")
