@@ -1,9 +1,11 @@
 package com.bloom.authservice.service;
 
 import com.bloom.authservice.dto.UserDTO;
+import com.bloom.authservice.entity.Role;
 import com.bloom.authservice.entity.User;
 import com.bloom.authservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,7 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserDTO getUserById(Long id) {
+        checkOwnership(id);
         User user = findUserById(id);
         if (!user.isEnabled()) {
             throw new RuntimeException("User account is deleted");
@@ -28,6 +31,7 @@ public class UserService {
     }
 
     public UserDTO recoverUser(Long id) {
+        checkOwnership(id);
         User user = findUserById(id);
         user.setEnabled(true);
         user.setLocked(false);
@@ -36,6 +40,7 @@ public class UserService {
 
     @Transactional
     public UserDTO updateUser(Long id, UserDTO dto) {
+        checkOwnership(id);
         User user = findUserById(id);
         user.setFirstName(dto.getFirstName());
         user.setLastName(dto.getLastName());
@@ -45,6 +50,7 @@ public class UserService {
 
     @Transactional
     public void softDeleteUser(Long id) {
+        checkOwnership(id);
         User user = findUserById(id);
         user.setEnabled(false);
         user.setLocked(true);
@@ -64,5 +70,13 @@ public class UserService {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .build();
+    }
+
+    private void checkOwnership(Long id) {
+        User currentUser = (User) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        if (!currentUser.getId().equals(id) && !currentUser.getRole().equals(Role.ADMIN)) {
+            throw new org.springframework.security.access.AccessDeniedException("Access denied");
+        }
     }
 }

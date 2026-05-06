@@ -16,7 +16,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-    # CORRECTION 2 : Suppression du bloc "connection: ssl: true" inutile maintenant
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   cloud:
     config:
