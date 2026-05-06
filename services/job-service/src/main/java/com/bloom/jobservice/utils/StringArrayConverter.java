@@ -1,4 +1,4 @@
-package com.bloom.jobservice.Utils;
+package com.bloom.jobservice.utils;
 
 
 import jakarta.persistence.AttributeConverter;

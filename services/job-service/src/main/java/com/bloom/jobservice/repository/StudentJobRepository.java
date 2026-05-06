@@ -1,7 +1,7 @@
-package com.bloom.jobservice.Repository;
+package com.bloom.jobservice.repository;
 
 
-import com.bloom.jobservice.Entity.StudentJob;
+import com.bloom.jobservice.entity.StudentJob;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

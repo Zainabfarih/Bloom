@@ -1,6 +1,6 @@
-package com.bloom.jobservice.Entity;
+package com.bloom.jobservice.entity;
 
-import com.bloom.jobservice.Utils.StringArrayConverter;
+import com.bloom.jobservice.utils.StringArrayConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
