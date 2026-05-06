@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 public class SkillsDTO {
-    private Long studentId;
+    private Long userId;
     private String jobTitle;
     private List<String> skills;
 }

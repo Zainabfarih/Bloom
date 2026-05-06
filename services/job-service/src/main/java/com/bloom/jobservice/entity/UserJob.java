@@ -20,7 +20,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StudentJob {
+public class UserJob {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,8 +29,8 @@ public class StudentJob {
     @Column(name = "uuid", nullable = false, unique = true, updatable = false)
     private UUID uuid;
 
-    @Column(name = "student_id", nullable = false)
-    private Long studentId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Column(name = "job_external_id", nullable = false)
     private String jobExternalId;

@@ -2,7 +2,7 @@ package com.bloom.jobservice.mapper;
 
 import com.bloom.jobservice.dto.SaveJobRequest;
 import com.bloom.jobservice.dto.SavedJobResponse;
-import com.bloom.jobservice.entity.StudentJob;
+import com.bloom.jobservice.entity.UserJob;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -10,12 +10,12 @@ import java.util.Arrays;
 import java.util.List;
 
 @Mapper(componentModel = "spring")
-public interface StudentJobMapper {
+public interface UserJobMapper {
 
     @Mapping(target = "id",      ignore = true)
     @Mapping(target = "uuid",    ignore = true)
     @Mapping(target = "savedAt", ignore = true)
-    @Mapping(target = "studentId",      source = "studentId")
+    @Mapping(target = "userId",      source = "userId")
     @Mapping(target = "jobExternalId",  source = "req.jobExternalId")
     @Mapping(target = "jobTitle",       source = "req.jobTitle")
     @Mapping(target = "jobCompany",     source = "req.jobCompany")
@@ -28,7 +28,7 @@ public interface StudentJobMapper {
     @Mapping(target = "missingSkills",
             expression = "java(toArray(req.getMissingSkills()))")
     @Mapping(target = "compatibilityScore", source = "req.compatibilityScore")
-    StudentJob toEntity(SaveJobRequest req, Long studentId);
+    UserJob toEntity(SaveJobRequest req, Long userId);
 
     @Mapping(target = "requiredSkills",
             expression = "java(toList(entity.getRequiredSkills()))")
@@ -36,7 +36,7 @@ public interface StudentJobMapper {
             expression = "java(toList(entity.getMatchedSkills()))")
     @Mapping(target = "missingSkills",
             expression = "java(toList(entity.getMissingSkills()))")
-    SavedJobResponse toResponse(StudentJob entity);
+    static SavedJobResponse toResponse(UserJob entity);
 
     default String[] toArray(List<String> list) {
         return list == null ? new String[0] : list.toArray(String[]::new);
