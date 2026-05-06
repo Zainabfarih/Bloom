@@ -5,6 +5,7 @@ import com.bloom.authservice.entity.Role;
 import com.bloom.authservice.entity.User;
 import com.bloom.authservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RefreshTokenService refreshTokenService;
 
     public UserDTO getUserById(Long id) {
         checkOwnership(id);
@@ -28,14 +30,6 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return toDTO(user);
-    }
-
-    public UserDTO recoverUser(Long id) {
-        checkOwnership(id);
-        User user = findUserById(id);
-        user.setEnabled(true);
-        user.setLocked(false);
-        return toDTO(userRepository.save(user));
     }
 
     @Transactional
@@ -54,7 +48,25 @@ public class UserService {
         User user = findUserById(id);
         user.setEnabled(false);
         user.setLocked(true);
+        refreshTokenService.revokeByUserId(id);
         userRepository.save(user);
+    }
+
+    @Transactional
+    public UserDTO recoverUser(Long id) {
+        checkOwnership(id);
+        User user = findUserById(id);
+        user.setEnabled(true);
+        user.setLocked(false);
+        return toDTO(userRepository.save(user));
+    }
+
+    private void checkOwnership(Long id) {
+        User currentUser = (User) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        if (!currentUser.getId().equals(id) && !currentUser.getRole().equals(Role.ADMIN)) {
+            throw new AccessDeniedException("Access denied");
+        }
     }
 
     private User findUserById(Long id) {
@@ -70,13 +82,5 @@ public class UserService {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .build();
-    }
-
-    private void checkOwnership(Long id) {
-        User currentUser = (User) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        if (!currentUser.getId().equals(id) && !currentUser.getRole().equals(Role.ADMIN)) {
-            throw new org.springframework.security.access.AccessDeniedException("Access denied");
-        }
     }
 }

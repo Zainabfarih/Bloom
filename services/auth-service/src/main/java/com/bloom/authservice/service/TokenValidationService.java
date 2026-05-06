@@ -1,11 +1,10 @@
 package com.bloom.authservice.service;
 
 import com.bloom.authservice.dto.TokenValidationResponse;
+import com.bloom.authservice.entity.User;
 import com.bloom.authservice.repository.UserRepository;
 import com.bloom.authservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,13 +12,16 @@ import org.springframework.stereotype.Service;
 public class TokenValidationService {
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final UserRepository userRepository;
 
     public TokenValidationResponse validateToken(String token) {
         try {
             String email = jwtService.extractUsername(token);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-            boolean valid = jwtService.isTokenValid(token, userDetails);
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) {
+                return TokenValidationResponse.builder().valid(false).build();
+            }
+            boolean valid = jwtService.isTokenValid(token, user);
             if (!valid) {
                 return TokenValidationResponse.builder().valid(false).build();
             }
