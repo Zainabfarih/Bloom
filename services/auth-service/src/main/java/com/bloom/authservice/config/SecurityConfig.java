@@ -4,6 +4,7 @@ import com.bloom.authservice.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -19,6 +20,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.time.LocalDateTime;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -28,19 +31,8 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
 
-    // Endpoints publics — pas besoin de JWT
-    private static final String[] PUBLIC_URLS = {
-            "/api/auth/register",
-            "/api/auth/login",
-            "/api/auth/refresh-token",
-            "/api/auth/reset-password",
-            "/api/auth/update-password",
-            "/api/tokens/validate"   // appelé par l'API Gateway pour valider les tokens
-    };
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        System.out.println("WAITING FOR PERMISSION");
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
@@ -51,9 +43,20 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**").authenticated()
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(ex -> ex
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpStatus.FORBIDDEN.value());
+                            response.setContentType("application/json");
+                            response.getWriter().write(
+                                    "{\"timestamp\":\"" + LocalDateTime.now() + "\"," +
+                                            "\"status\":403," +
+                                            "\"error\":\"Forbidden\"," +
+                                            "\"message\":\"" + accessDeniedException.getMessage() + "\"}"
+                            );
+                        })
+                )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-        System.out.println("GOT PERMISSION");
 
         return http.build();
     }
