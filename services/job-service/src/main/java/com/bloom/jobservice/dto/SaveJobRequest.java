@@ -1,10 +1,12 @@
 package com.bloom.jobservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 public class SaveJobRequest {
@@ -23,10 +25,24 @@ public class SaveJobRequest {
     private String jobLocation;
 
     private String jobApplyUrl;
+
+    // Skills de l'offre d'emploi (extraits via GET /api/job/{jobId})
     private List<String> requiredSkills;
 
-    // Ces champs sont remplis par le service — pas par le frontend
+    // UUID du CV à utiliser pour le matching (optionnel).
+    // Si absent → job-service appelle cv-service pour récupérer le CV actif de l'user.
+    // Si présent → job-service appelle cv-service pour ce CV spécifique.
+    // Dans les deux cas, cv-service retourne les skills extraits du PDF uploadé.
+    private UUID cvUuid;
+
+    // ── Calculés server-side par SkillMatchingService ─────────────────
+    // Ignorés si envoyés par le client dans le body
+    @JsonIgnore
     private List<String> matchedSkills;
+
+    @JsonIgnore
     private List<String> missingSkills;
+
+    @JsonIgnore
     private Integer compatibilityScore;
 }

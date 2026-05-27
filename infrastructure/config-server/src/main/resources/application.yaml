@@ -4,9 +4,13 @@ server:
 spring:
   application:
     name: config-server
+  profiles:
+    active: ${CONFIG_SERVER_PROFILE:git}
   cloud:
     config:
       server:
+        native:
+          search-locations: file:${CONFIG_REPO_PATH}
         git:
           uri: https://github.com/ENSIAS-MEH/development-platform-bloom
           default-label: main

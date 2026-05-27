@@ -11,39 +11,42 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
-    baseline-version: 0        # ← FIX : baseline à 0 pour que V1 soit exécuté
     validate-on-migrate: true
+    out-of-order: false
+    # CRITIQUE : Flyway doit utiliser une URL directe (port 5432, pas 6543)
+    # Port 6543 = PgBouncer Transaction Mode → coupe les connexions entre transactions
+    # → Flyway ne peut pas exécuter ses DDL (CREATE TABLE etc.) → aucun log, rien
+    # Port 5432 = Session Mode → connexion persistante → Flyway fonctionne
+    url: ${DB_JOB_URL_DIRECT}
+    username: ${DB_JOB_USERNAME}
+    password: ${DB_JOB_PASSWORD}
 
   data:
     redis:
-      host: ${REDIS_URL}
-      port: ${REDIS_PORT}
-      password: ${REDIS_TOKEN}
-      ssl:
-        enabled: true       # OBLIGATOIRE pour Upstash (TLS sur port 6380)
+      url: ${REDIS_URL}
       timeout: 2000ms
 
-# CORRECTION : "skill" est à la RACINE, PAS sous "spring:"
 skill:
   extractor:
-    provider: ${SKILL_PROVIDER:huggingface}
     hf:
-      token: ${HF_TOKEN:}
-      model: Davlan/bert-base-multilingual-cased-ner-hrl
-    ollama:
-      url: ${OLLAMA_URL:http://localhost:11434}
-      model: gemma2:2b
+      model-url: ${SKILL_EXTRACTOR_HF_MODEL_URL}
+    gemini:
+      key: ${GEMINI_API_KEY_JOB_SKILLS}
+    # Ollama — solution alternative self-hosted (décommenter pour activer)
+    # ollama:
+    #   url: ${SKILL_EXTRACTOR_OLLAMA_URL}
+    #   model: ${SKILL_EXTRACTOR_OLLAMA_MODEL}
+    #   timeout-seconds: 120   # Minimum 120s recommandé sur CPU local
 
 jobsapi:
   base-url: ${JOBSAPI_BASE_URL}
@@ -63,3 +66,7 @@ feign:
     config:
       default:
         loggerLevel: NONE
+
+logging:
+  level:
+    org.flywaydb: DEBUG

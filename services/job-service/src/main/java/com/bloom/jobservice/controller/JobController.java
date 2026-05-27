@@ -1,5 +1,6 @@
 package com.bloom.jobservice.controller;
 
+import com.bloom.jobservice.dto.JobDetailResponse;
 import com.bloom.jobservice.dto.JobSearchResponse;
 import com.bloom.jobservice.dto.SaveJobRequest;
 import com.bloom.jobservice.dto.SavedJobResponse;
@@ -27,22 +28,50 @@ public class JobController {
     private final JobService jobService;
     private final SavedJobService savedJobService;
 
-    // ─── Search ──────────────────────────────────────────────
+    // ─── Search ──────────────────────────────────────────────────────────────
 
+    /**
+     * Recherche d'offres via SerpAPI (ou cache Redis 24h).
+     * Retourne une liste allégée : title, company, location, extensions, applyOptions.
+     * PAS de description, PAS de skills (extraction lazy via /detail/{jobId}).
+     * Accessible sans authentification.
+     */
     @GetMapping("/search")
-    @Operation(summary = "Search jobs via JobsAPI — cached 24h in Redis")
+    @Operation(summary = "Search jobs — résultats SerpAPI, cached 24h, sans skills (lazy extraction)")
     public ResponseEntity<JobSearchResponse> search(
             @RequestParam String query,
             @RequestParam(required = false) String location) {
 
-        return ResponseEntity.ok(
-                jobService.searchJobs(query, location));
+        return ResponseEntity.ok(jobService.searchJobs(query, location));
     }
 
-    // ─── Favourites ───────────────────────────────────────────
+    /**
+     * Détail d'un job par son jobId SerpAPI (champ job_id dans /search).
+     * Déclenche l'extraction des skills via Ollama si non encore en cache.
+     * Retourne : description complète + extractedSkills + métadonnées.
+     *
+     * Le jobExternalId (champ job_id SerpAPI) doit être URL-encodé si nécessaire.
+     * Utilisez les paramètres applyOptions du job pour candidater directement.
+     *
+     * Accessible sans authentification (lecture seule).
+     */
+    @GetMapping("/{jobId}")
+    @Operation(summary = "Détail d'un job + skills extraits (Ollama, cached 24h) — nécessite un search préalable")
+    public ResponseEntity<JobDetailResponse> getJobDetail(
+            @PathVariable String jobId) {
 
+        return ResponseEntity.ok(jobService.getJobDetail(jobId));
+    }
+
+    // ─── Favourites ──────────────────────────────────────────────────────────
+
+    /**
+     * Sauvegarde un job en favoris et calcule le score de compatibilité.
+     * Le champ requiredSkills doit être fourni (issu de /api/job/{jobId}.extractedSkills).
+     * Les champs matchedSkills, missingSkills et compatibilityScore sont calculés server-side.
+     */
     @PostMapping("/saved")
-    @Operation(summary = "Save a job as favourite — triggers skill matching")
+    @Operation(summary = "Save a job — skill matching vs CV, score calculé server-side")
     public ResponseEntity<SavedJobResponse> save(
             @Valid @RequestBody SaveJobRequest request,
             Authentication auth,
@@ -55,13 +84,10 @@ public class JobController {
     }
 
     @GetMapping("/saved")
-    @Operation(summary = "Get all my saved jobs ordered by compatibility score")
-    public ResponseEntity<List<SavedJobResponse>> getMySaved(
-            Authentication auth) {
-
+    @Operation(summary = "Get all my saved jobs ordered by compatibility score DESC")
+    public ResponseEntity<List<SavedJobResponse>> getMySaved(Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
-        return ResponseEntity.ok(
-                savedJobService.getSavedJobs(userId));
+        return ResponseEntity.ok(savedJobService.getSavedJobs(userId));
     }
 
     @GetMapping("/saved/{uuid}")
@@ -71,8 +97,7 @@ public class JobController {
             Authentication auth) {
 
         Long userId = (Long) auth.getPrincipal();
-        return ResponseEntity.ok(
-                savedJobService.getByUuid(userId, uuid));
+        return ResponseEntity.ok(savedJobService.getByUuid(userId, uuid));
     }
 
     @DeleteMapping("/saved/{jobExternalId}")
@@ -86,11 +111,11 @@ public class JobController {
         return ResponseEntity.noContent().build();
     }
 
-    // ─── Admin ───────────────────────────────────────────────
+    // ─── Admin ───────────────────────────────────────────────────────────────
 
     @DeleteMapping("/admin/cache")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Force evict Redis cache for a specific query")
+    @Operation(summary = "Force evict Redis cache (search + skills) pour une query donnée")
     public ResponseEntity<Void> evictCache(
             @RequestParam String query,
             @RequestParam(required = false) String location) {

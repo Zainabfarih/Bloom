@@ -3,46 +3,54 @@ package com.bloom.jobservice.mapper;
 import com.bloom.jobservice.dto.SaveJobRequest;
 import com.bloom.jobservice.dto.SavedJobResponse;
 import com.bloom.jobservice.entity.SavedJob;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import com.bloom.jobservice.entity.SkillType;
+import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.List;
+@Component
+public class SavedJobMapper {
 
-@Mapper(componentModel = "spring")
-public interface SavedJobMapper {
+    /**
+     * Convertit SaveJobRequest → SavedJob entity.
+     *
+     * À ce stade, req.getCvUuid() est GARANTI non null :
+     * SavedJobService l'a rempli avec le cvUuid retourné par cv-service.
+     */
+    public SavedJob toEntity(SaveJobRequest req, Long userId) {
+        SavedJob job = SavedJob.builder()
+                .userId(userId)
+                .cvUuid(req.getCvUuid())              // non null — vérifié par le service
+                .jobExternalId(req.getJobExternalId())
+                .jobTitle(req.getJobTitle())
+                .jobCompany(req.getJobCompany())
+                .jobLocation(req.getJobLocation())
+                .jobApplyUrl(req.getJobApplyUrl())
+                .compatibilityScore(req.getCompatibilityScore())
+                .build();
 
-    @Mapping(target = "id",      ignore = true)
-    @Mapping(target = "uuid",    ignore = true)
-    @Mapping(target = "savedAt", ignore = true)
-    @Mapping(target = "userId",      source = "userId")
-    @Mapping(target = "jobExternalId",  source = "req.jobExternalId")
-    @Mapping(target = "jobTitle",       source = "req.jobTitle")
-    @Mapping(target = "jobCompany",     source = "req.jobCompany")
-    @Mapping(target = "jobLocation",    source = "req.jobLocation")
-    @Mapping(target = "jobApplyUrl",    source = "req.jobApplyUrl")
-    @Mapping(target = "requiredSkills",
-            expression = "java(toArray(req.getRequiredSkills()))")
-    @Mapping(target = "matchedSkills",
-            expression = "java(toArray(req.getMatchedSkills()))")
-    @Mapping(target = "missingSkills",
-            expression = "java(toArray(req.getMissingSkills()))")
-    @Mapping(target = "compatibilityScore", source = "req.compatibilityScore")
-    SavedJob toEntity(SaveJobRequest req, Long userId);
+        job.addSkills(req.getRequiredSkills(), SkillType.REQUIRED);
+        job.addSkills(req.getMatchedSkills(),  SkillType.MATCHED);
+        job.addSkills(req.getMissingSkills(),  SkillType.MISSING);
 
-    @Mapping(target = "requiredSkills",
-            expression = "java(toList(entity.getRequiredSkills()))")
-    @Mapping(target = "matchedSkills",
-            expression = "java(toList(entity.getMatchedSkills()))")
-    @Mapping(target = "missingSkills",
-            expression = "java(toList(entity.getMissingSkills()))")
-    static SavedJobResponse toResponse(SavedJob entity);
-
-    default String[] toArray(List<String> list) {
-        return list == null ? new String[0] : list.toArray(String[]::new);
+        return job;
     }
 
-    default List<String> toList(String[] array) {
-        return array == null ? List.of() : Arrays.asList(array);
+    /**
+     * Convertit SavedJob entity → SavedJobResponse DTO.
+     */
+    public SavedJobResponse toResponse(SavedJob entity) {
+        return SavedJobResponse.builder()
+                .uuid(entity.getUuid())
+                .jobExternalId(entity.getJobExternalId())
+                .jobTitle(entity.getJobTitle())
+                .jobCompany(entity.getJobCompany())
+                .jobLocation(entity.getJobLocation())
+                .jobApplyUrl(entity.getJobApplyUrl())
+                .cvUuid(entity.getCvUuid())           // UUID du CV utilisé pour le matching
+                .requiredSkills(entity.getSkillsByType(SkillType.REQUIRED))
+                .matchedSkills(entity.getSkillsByType(SkillType.MATCHED))
+                .missingSkills(entity.getSkillsByType(SkillType.MISSING))
+                .compatibilityScore(entity.getCompatibilityScore())
+                .savedAt(entity.getSavedAt())
+                .build();
     }
 }

@@ -1,12 +1,9 @@
 package com.bloom.jobservice.security;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,13 +14,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
-    private final JwtService jwtService;
+public class GatewayAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -31,39 +27,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain chain)
             throws ServletException, IOException {
 
-        final String header = request.getHeader("Authorization");
+        String userIdHeader = request.getHeader("X-User-Id");
+        String rolesHeader  = request.getHeader("X-User-Roles");
 
-        if (header == null || !header.startsWith("Bearer ")) {
-            chain.doFilter(request, response);
-            return;
-        }
+        if (userIdHeader != null) {
+            try {
+                Long userId = Long.valueOf(userIdHeader);
 
-        try {
-            String token = header.substring(7);
-
-            if (jwtService.isValid(token)
-                    && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                var authorities = jwtService.extractRoles(token).stream()
-                        .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-                        .toList();
+                List<SimpleGrantedAuthority> authorities = (rolesHeader != null && !rolesHeader.isBlank())
+                        ? Arrays.stream(rolesHeader.split(","))
+                        .map(r -> new SimpleGrantedAuthority("ROLE_" + r.trim()))
+                        .toList()
+                        : List.of();
 
                 var auth = new UsernamePasswordAuthenticationToken(
-                        jwtService.extractStudentId(token),
+                        userId,      // ← auth.getPrincipal() dans le controller = Long userId ✅
                         null,
                         authorities
                 );
-                auth.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request));
+                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            }
 
-        } catch (ExpiredJwtException e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
-            return;
-        } catch (JwtException e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
-            return;
+                log.debug("Gateway auth — userId={}, roles={}", userId, rolesHeader);
+
+            } catch (NumberFormatException e) {
+                log.warn("Invalid X-User-Id header: {}", userIdHeader);
+            }
         }
 
         chain.doFilter(request, response);

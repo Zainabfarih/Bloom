@@ -5,12 +5,22 @@ import feign.codec.ErrorDecoder;
 import com.bloom.jobservice.exception.JobsApiException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 @Configuration
 public class FeignConfig {
 
+    // NONE en prod — évite de logger les URLs et headers (qui contiennent l'API key !)
     @Bean
-    public Logger.Level feignLoggerLevel() {
+    @Profile("!dev")
+    public Logger.Level feignLoggerLevelProd() {
+        return Logger.Level.NONE;
+    }
+
+    // BASIC uniquement en dev — pour débugger
+    @Bean
+    @Profile("dev")
+    public Logger.Level feignLoggerLevelDev() {
         return Logger.Level.BASIC;
     }
 

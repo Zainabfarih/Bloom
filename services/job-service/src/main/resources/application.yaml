@@ -2,10 +2,10 @@ spring:
   application:
     name: job-service
   config:
-    import: "optional:configserver:http://localhost:8888"
+    import: "configserver:http://localhost:8888"
   cloud:
     config:
-      fail-fast: false
+      fail-fast: true
       retry:
         max-attempts: 5
         initial-interval: 1000
