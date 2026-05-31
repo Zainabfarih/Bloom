@@ -3,6 +3,7 @@ package com.bloom.authservice.service;
 import com.bloom.authservice.dto.UserDTO;
 import com.bloom.authservice.entity.Role;
 import com.bloom.authservice.entity.User;
+import com.bloom.authservice.mapper.UserMapper; // Import the mapper
 import com.bloom.authservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -16,6 +17,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RefreshTokenService refreshTokenService;
+    private final UserMapper userMapper;
 
     public UserDTO getUserById(Long id) {
         checkOwnership(id);
@@ -23,13 +25,7 @@ public class UserService {
         if (!user.isEnabled()) {
             throw new RuntimeException("User account is deleted");
         }
-        return toDTO(user);
-    }
-
-    public UserDTO getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return toDTO(user);
+        return userMapper.toDTO(user);
     }
 
     @Transactional
@@ -39,7 +35,7 @@ public class UserService {
         user.setFirstName(dto.getFirstName());
         user.setLastName(dto.getLastName());
         user.setEmail(dto.getEmail());
-        return toDTO(userRepository.save(user));
+        return userMapper.toDTO(userRepository.save(user));
     }
 
     @Transactional
@@ -52,15 +48,6 @@ public class UserService {
         userRepository.save(user);
     }
 
-    @Transactional
-    public UserDTO recoverUser(Long id) {
-        checkOwnership(id);
-        User user = findUserById(id);
-        user.setEnabled(true);
-        user.setLocked(false);
-        return toDTO(userRepository.save(user));
-    }
-
     private void checkOwnership(Long id) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
@@ -71,16 +58,19 @@ public class UserService {
 
     private User findUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException("User not found: " + id));
     }
 
-    private UserDTO toDTO(User user) {
-        return UserDTO.builder()
-                .id(user.getId())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .email(user.getEmail())
-                .role(user.getRole().name())
-                .build();
+    @Transactional
+    public void recoverUser(Long id) {
+        userRepository.findById(id).ifPresentOrElse(u -> {
+            if (u.isEnabled()) {
+                throw new IllegalStateException("User is already active");
+            }
+            u.setEnabled(true);
+            u.setLocked(false);
+            u.setFailedLoginAttempts(0);
+            userRepository.save(u);
+        }, () -> { throw new RuntimeException("User not found"); });
     }
 }

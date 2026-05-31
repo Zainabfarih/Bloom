@@ -36,11 +36,10 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/tokens/**", "/error").permitAll()
-                        .requestMatchers("/api/users/**").authenticated()
+                        .requestMatchers("/api/auth/**", "/api/tokens/**", "/error", "/actuator/health").permitAll()
+                        .requestMatchers("/api/users/admin/**").hasRole("ADMIN") // Protect admin routes
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
@@ -76,6 +75,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(12);
     }
 }

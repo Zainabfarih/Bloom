@@ -11,8 +11,6 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 @Service
@@ -28,16 +26,12 @@ public class JwtService {
     // ── Generation ──────────────────────────────────────────────
 
     public String generateAccessToken(UserDetails userDetails) {
-        com.bloom.authservice.entity.User user =
-                (com.bloom.authservice.entity.User) userDetails;
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", user.getId().toString());
-        claims.put("role", user.getRole().name());
+        com.bloom.authservice.entity.User user = (com.bloom.authservice.entity.User) userDetails;
 
         return Jwts.builder()
-                .claims(claims)
-                .subject(user.getUsername())   // email
+                .subject(userDetails.getUsername()) // Usually the email
+                .claim("userId", user.getId().toString())
+                .claim("role", user.getRole().name())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
                 .signWith(getSigningKey())

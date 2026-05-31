@@ -16,6 +16,11 @@ public class TokenController {
     @GetMapping("/validate")
     public ResponseEntity<TokenValidationResponse> validateToken(
             @RequestHeader("Authorization") String bearerToken) {
+
+        if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
+            return ResponseEntity.ok(TokenValidationResponse.builder().valid(false).build());
+        }
+
         String token = bearerToken.substring(7);
         return ResponseEntity.ok(tokenValidationService.validateToken(token));
     }

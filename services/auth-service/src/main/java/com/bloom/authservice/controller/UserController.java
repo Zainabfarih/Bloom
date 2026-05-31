@@ -5,6 +5,7 @@ import com.bloom.authservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -33,7 +34,9 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/recover")
-    public ResponseEntity<UserDTO> recoverUser(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.recoverUser(id));
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> recoverUser(@PathVariable Long id) {
+        userService.recoverUser(id);
+        return ResponseEntity.noContent().build();
     }
 }

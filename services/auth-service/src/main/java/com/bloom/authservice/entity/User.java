@@ -5,12 +5,18 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import java.time.LocalDateTime;
 import java.util.Collection;
 
 @Entity
 @Table(name = "users")
-@Data
+@SQLDelete(sql = "UPDATE users SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
+@Setter
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,17 +39,25 @@ public class User implements UserDetails {
     private String password;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean enabled = true;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean locked = false;
 
     @Column(nullable = false)
+    @Builder.Default
     private int failedLoginAttempts = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    @Builder.Default
+    private Role role = Role.STUDENT;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

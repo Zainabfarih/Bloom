@@ -1,10 +1,12 @@
 package com.bloom.authservice.entity;
 
-public enum Role {
-    STUDENT,
-    ADMIN;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.Set;
 
-    public java.util.Set<org.springframework.security.core.authority.SimpleGrantedAuthority> getAuthorities() {
-        return java.util.Set.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + this.name()));
+public enum Role {
+    STUDENT, ADMIN;
+
+    public Set<SimpleGrantedAuthority> getAuthorities() {
+        return Set.of(new SimpleGrantedAuthority("ROLE_" + this.name()));
     }
 }
