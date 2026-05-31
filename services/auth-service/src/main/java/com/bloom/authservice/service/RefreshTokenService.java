@@ -1,7 +1,9 @@
 package com.bloom.authservice.service;
 
 import com.bloom.authservice.entity.RefreshToken;
+import com.bloom.authservice.entity.User;
 import com.bloom.authservice.repository.RefreshTokenRepository;
+import com.bloom.authservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,17 +21,20 @@ public class RefreshTokenService {
     private long refreshTokenExpiration;
 
     private final RefreshTokenRepository refreshTokenRepository;
-    private final com.bloom.authservice.repository.UserRepository userRepository;
+    private final UserRepository userRepository;
 
+    @Transactional
     public RefreshToken createRefreshToken(Long userId) {
-        revokeByUserId(userId); // révoque les anciens tokens
+        refreshTokenRepository.revokeAllByUserId(userId); //revoque les anciens tokens
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         RefreshToken refreshToken = RefreshToken.builder()
                 .token(UUID.randomUUID().toString())
                 .expiryDate(Instant.now().plusMillis(refreshTokenExpiration))
-                .revoked(false)
-                .user(userRepository.findById(userId)
-                        .orElseThrow(() -> new RuntimeException("User not found")))
+                .user(user)
                 .build();
+
         return refreshTokenRepository.save(refreshToken);
     }
 

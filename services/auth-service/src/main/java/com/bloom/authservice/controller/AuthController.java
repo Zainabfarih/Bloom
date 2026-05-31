@@ -1,3 +1,4 @@
+// controller/AuthController.java
 package com.bloom.authservice.controller;
 
 import com.bloom.authservice.dto.*;
@@ -5,7 +6,6 @@ import com.bloom.authservice.service.AuthService;
 import com.bloom.authservice.service.PasswordService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,38 +18,35 @@ public class AuthController {
     private final PasswordService passwordService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req) {
+        return ResponseEntity.ok(authService.register(req));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        System.out.println("WAITING FOR RESPONSE");
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest req) {
+        return ResponseEntity.ok(authService.login(req));
     }
 
-    @PostMapping("/refresh-token")
-    public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(authService.refreshToken(request));
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshTokenRequest req) {
+        return ResponseEntity.ok(authService.refreshToken(req));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String bearerToken) {
-        // extrait le token pur sans "Bearer "
-        String token = bearerToken.substring(7);
-        authService.logout(token);
+    public ResponseEntity<Void> logout(@RequestBody RefreshTokenRequest req) {
+        authService.logout(req.getRefreshToken());
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
-        passwordService.initiatePasswordReset(request);
+    @PostMapping("/password-reset/initiate")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody PasswordResetRequest req) {
+        passwordService.initiatePasswordReset(req);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/update-password")
-    public ResponseEntity<Void> updatePassword(@Valid @RequestBody PasswordUpdateRequest request) {
-        passwordService.updatePassword(request);
+    @PostMapping("/password-reset/update")
+    public ResponseEntity<Void> updatePassword(@Valid @RequestBody PasswordUpdateRequest req) {
+        passwordService.updatePassword(req);
         return ResponseEntity.ok().build();
     }
 }

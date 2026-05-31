@@ -7,7 +7,8 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "password_reset_tokens")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,6 +25,7 @@ public class PasswordResetToken {
     private Instant expiryDate;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean used = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
