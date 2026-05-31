@@ -6,14 +6,17 @@ import com.bloom.authservice.dto.*;
 import com.bloom.authservice.repository.UserRepository;
 import com.bloom.authservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.*;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -22,7 +25,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
 
-    @Value("${app.max-failed-login-attempts}")
+    @Value("${app.max-failed-login-attempts:5}")
     private int maxFailedAttempts;
 
     @Transactional
@@ -41,7 +44,6 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
-    @Transactional
     public AuthResponse login(LoginRequest req) {
         User user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
@@ -53,14 +55,16 @@ public class AuthService {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
-        } catch (BadCredentialsException e) {
+        } catch (AuthenticationException e) {
             recordFailedLogin(req.getEmail());
-            throw e;
+            throw new BadCredentialsException("Invalid email or password");
         }
 
         // Reset failed attempts on success
-        user.setFailedLoginAttempts(0);
-        userRepository.save(user);
+        if (user.getFailedLoginAttempts() > 0) {
+            user.setFailedLoginAttempts(0);
+            userRepository.save(user);
+        }
 
         return buildAuthResponse(user);
     }
@@ -82,9 +86,12 @@ public class AuthService {
     public void recordFailedLogin(String email) {
         userRepository.findByEmail(email).ifPresent(user -> {
             user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
+
             if (user.getFailedLoginAttempts() >= maxFailedAttempts) {
                 user.setLocked(true);
+                log.warn("User account {} has been locked due to too many failed attempts.", email);
             }
+
             userRepository.save(user);
         });
     }
