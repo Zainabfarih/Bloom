@@ -3,7 +3,13 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      routes: []
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**, /api/tokens/**, /api/users/**
+          filters:
+            - StripPrefix=0
 
 server:
   port: 8080
