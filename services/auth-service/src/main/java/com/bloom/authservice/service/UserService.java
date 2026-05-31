@@ -44,6 +44,7 @@ public class UserService {
         User user = findUserById(id);
         user.setEnabled(false);
         user.setLocked(true);
+        user.setDeleted(true);
         refreshTokenService.revokeByUserId(id);
         userRepository.save(user);
     }
@@ -69,6 +70,7 @@ public class UserService {
             }
             u.setEnabled(true);
             u.setLocked(false);
+            u.setDeleted(false);
             u.setFailedLoginAttempts(0);
             userRepository.save(u);
         }, () -> { throw new RuntimeException("User not found"); });
