@@ -1,0 +1,61 @@
+name: Bloom CI — config-server
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/config-server/**'
+
+jobs:
+
+  level1-compile:
+    name: "[config-server] Niveau 1 — Compilation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Compile
+        run: mvn clean compile -q
+        working-directory: infrastructure/config-server
+
+  level2-tests:
+    name: "[config-server] Niveau 2 — Tests"
+    needs: level1-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Tests
+        run: mvn test
+        working-directory: infrastructure/config-server
+
+  level3-build:
+    name: "[config-server] Niveau 3 — Build final"
+    needs: level2-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Vérification version SNAPSHOT
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ "$VERSION" != *-SNAPSHOT ]]; then
+            echo "La version '$VERSION' doit être un SNAPSHOT sur une PR"
+            exit 1
+          fi
+        working-directory: infrastructure/config-server
+      - name: Package final
+        run: mvn package -DskipTests
+        working-directory: infrastructure/config-server

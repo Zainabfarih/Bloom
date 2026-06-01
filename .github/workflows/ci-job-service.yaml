@@ -1,0 +1,66 @@
+name: Bloom CI — job-service
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'services/job-service/**'
+
+jobs:
+
+  level1-compile:
+    name: "[job-service] Niveau 1 — Compilation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Compile
+        run: mvn clean compile -q
+        working-directory: services/job-service
+
+  level2-tests:
+    name: "[job-service] Niveau 2 — Tests"
+    needs: level1-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Tests
+        run: mvn test
+        working-directory: services/job-service
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-job-service
+          path: services/job-service/target/site/jacoco/
+
+  level3-build:
+    name: "[job-service] Niveau 3 — Build final"
+    needs: level2-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Vérification version SNAPSHOT
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ "$VERSION" != *-SNAPSHOT ]]; then
+            echo "La version '$VERSION' doit être un SNAPSHOT sur une PR"
+            exit 1
+          fi
+        working-directory: services/job-service
+      - name: Build final
+        run: mvn verify -DskipTests
+        working-directory: services/job-service

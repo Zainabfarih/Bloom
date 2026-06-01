@@ -30,6 +30,14 @@ spring:
               args:
                 name: cv-service-cb
                 fallbackUri: forward:/fallback/cv
+                
+        # ── Auth Service ───────────────────────────────────────────── 
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**, /api/tokens/**, /api/users/**
+          filters:
+            - StripPrefix=0
 
   boot:
     admin:
