@@ -22,8 +22,10 @@ spring:
   data:
     redis:
       url: redis://localhost:6379
-      timeout: 2s
 
+redis:
+  ssl:
+    enabled: false
 
 jwt:
   secret: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLW9ubHktMTI4Yml0cw==
