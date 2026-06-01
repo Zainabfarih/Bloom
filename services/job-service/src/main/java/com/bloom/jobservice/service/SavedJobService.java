@@ -91,7 +91,7 @@ public class SavedJobService {
         } catch (Exception e) {
             log.error("cv-service unavailable — userId={} cvUuid={} error={}", userId, cvUuid, e.getMessage());
             throw new JobsApiException(
-                    "cv-service unavailable. Make sure you have uploaded your CV before saving a job."
+                    "cv-service indisponible. Assurez-vous d'avoir téléchargé votre CV avant de sauvegarder un emploi."
             );
         }
     }

@@ -9,7 +9,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
@@ -23,8 +23,10 @@ import java.util.List;
 import java.util.Set;
 
 @Component
-@Slf4j
+
 public class JwtGatewayFilter extends OncePerRequestFilter {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JwtGatewayFilter.class);
 
     private final SecretKey key;
 

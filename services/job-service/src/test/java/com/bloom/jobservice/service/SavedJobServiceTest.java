@@ -7,6 +7,7 @@ import com.bloom.jobservice.entity.SavedJob;
 import com.bloom.jobservice.exception.JobsApiException;
 import com.bloom.jobservice.exception.ResourceNotFoundException;
 import com.bloom.jobservice.external.CvServiceClient;
+import com.bloom.jobservice.mapper.SavedJobMapper;
 import com.bloom.jobservice.repository.SavedJobRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,7 @@ class SavedJobServiceTest {
     @Mock private SavedJobRepository   savedJobRepository;
     @Mock private SkillMatchingService skillMatchingService;
     @Mock private CvServiceClient      cvServiceClient;
+    @Mock private SavedJobMapper       savedJobMapper;
 
     @InjectMocks
     private SavedJobService savedJobService;
@@ -63,6 +65,7 @@ class SavedJobServiceTest {
         void save_new_job_computes_matching_and_persists() {
             SkillsDTO cvData = buildCvSkills(CV_UUID, List.of("Java", "Python"));
             SavedJob  entity = buildSavedJob(50);
+            SavedJobResponse response = buildResponse(entity);
 
             when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
                     .thenReturn(Optional.empty());
@@ -71,6 +74,8 @@ class SavedJobServiceTest {
             when(skillMatchingService.findMissing(any(), any())).thenReturn(List.of("Docker", "PostgreSQL"));
             when(skillMatchingService.computeScore(any(), any())).thenReturn(50);
             when(savedJobRepository.save(any())).thenReturn(entity);
+            when(savedJobMapper.toEntity(any(), eq(USER_ID))).thenReturn(entity);
+            when(savedJobMapper.toResponse(entity)).thenReturn(response);
 
             SavedJobResponse result = savedJobService.saveJob(USER_ID, baseRequest, BEARER);
 
@@ -86,9 +91,11 @@ class SavedJobServiceTest {
         @DisplayName("Idempotent : retourne l'existant sans doublon ni appel cv-service")
         void save_job_is_idempotent_when_already_saved() {
             SavedJob existing = buildSavedJob(75);
+            SavedJobResponse response = buildResponse(existing);
 
             when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
                     .thenReturn(Optional.of(existing));
+            when(savedJobMapper.toResponse(existing)).thenReturn(response);
 
             SavedJobResponse result = savedJobService.saveJob(USER_ID, baseRequest, BEARER);
 
@@ -105,6 +112,7 @@ class SavedJobServiceTest {
             baseRequest.setCvUuid(CV_UUID);
             SkillsDTO cvData = buildCvSkills(CV_UUID, List.of("Java", "Spring Boot"));
             SavedJob  entity = buildSavedJob(33);
+            SavedJobResponse response = buildResponse(entity);
 
             when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
                     .thenReturn(Optional.empty());
@@ -113,6 +121,8 @@ class SavedJobServiceTest {
             when(skillMatchingService.findMissing(any(), any())).thenReturn(List.of("Docker"));
             when(skillMatchingService.computeScore(any(), any())).thenReturn(33);
             when(savedJobRepository.save(any())).thenReturn(entity);
+            when(savedJobMapper.toEntity(any(), eq(USER_ID))).thenReturn(entity);
+            when(savedJobMapper.toResponse(entity)).thenReturn(response);
 
             savedJobService.saveJob(USER_ID, baseRequest, BEARER);
 
@@ -164,6 +174,8 @@ class SavedJobServiceTest {
             SavedJob job2 = buildSavedJob(60);
             when(savedJobRepository.findByUserIdWithSkills(USER_ID))
                     .thenReturn(List.of(job1, job2));
+            when(savedJobMapper.toResponse(job1)).thenReturn(buildResponse(job1));
+            when(savedJobMapper.toResponse(job2)).thenReturn(buildResponse(job2));
 
             List<SavedJobResponse> results = savedJobService.getSavedJobs(USER_ID);
 
@@ -193,8 +205,10 @@ class SavedJobServiceTest {
             UUID uuid = UUID.randomUUID();
             SavedJob job = buildSavedJob(80);
             job.setUserId(USER_ID);
+            SavedJobResponse response = buildResponse(job);
 
             when(savedJobRepository.findByUuidWithSkills(uuid)).thenReturn(Optional.of(job));
+            when(savedJobMapper.toResponse(job)).thenReturn(response);
 
             SavedJobResponse result = savedJobService.getByUuid(USER_ID, uuid);
 
@@ -275,6 +289,14 @@ class SavedJobServiceTest {
                 .jobCompany("TechCorp")
                 .compatibilityScore(score)
                 .savedAt(Instant.now())
+                .build();
+    }
+
+    private SavedJobResponse buildResponse(SavedJob job) {
+        return SavedJobResponse.builder()
+                .uuid(job.getUuid())
+                .jobExternalId(job.getJobExternalId())
+                .compatibilityScore(job.getCompatibilityScore())
                 .build();
     }
 }

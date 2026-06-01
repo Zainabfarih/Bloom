@@ -7,6 +7,7 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -14,11 +15,14 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 
 class GatewayAuthFilterTest {
 
+    private static final String GATEWAY_SECRET = "test-gateway-secret";
+
     private GatewayAuthFilter filter;
 
     @BeforeEach
     void setUp() {
         filter = new GatewayAuthFilter();
+        ReflectionTestUtils.setField(filter, "expectedSecret", GATEWAY_SECRET);
         SecurityContextHolder.clearContext();
     }
 
@@ -27,6 +31,7 @@ class GatewayAuthFilterTest {
     @DisplayName("X-User-Id + X-User-Roles → Authentication créée (cas principal après Gateway)")
     void filter_creates_authentication_when_both_headers_present() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-Gateway-Secret", GATEWAY_SECRET);
         request.addHeader("X-User-Id", "42");
         request.addHeader("X-User-Roles", "STUDENT");
 
@@ -45,6 +50,7 @@ class GatewayAuthFilterTest {
     @DisplayName("Rôles multiples séparés par virgule → toutes les authorities créées")
     void filter_parses_multiple_roles_from_comma_separated_header() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-Gateway-Secret", GATEWAY_SECRET);
         request.addHeader("X-User-Id", "1");
         request.addHeader("X-User-Roles", "STUDENT,ADMIN");
 
@@ -60,6 +66,7 @@ class GatewayAuthFilterTest {
     @DisplayName("X-User-Id présent, X-User-Roles absent → authentifié sans authority")
     void filter_authenticates_without_roles_header() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-Gateway-Secret", GATEWAY_SECRET);
         request.addHeader("X-User-Id", "7");
 
         filter.doFilterInternal(request, new MockHttpServletResponse(), new MockFilterChain());
@@ -102,6 +109,7 @@ class GatewayAuthFilterTest {
     @DisplayName("X-User-Roles vide/blank → authentifié sans authority")
     void filter_handles_blank_roles_header() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-Gateway-Secret", GATEWAY_SECRET);
         request.addHeader("X-User-Id", "5");
         request.addHeader("X-User-Roles", "   ");
 
@@ -131,6 +139,7 @@ class GatewayAuthFilterTest {
     void filter_calls_chain_after_setting_auth() throws Exception {
         MockFilterChain chain = new MockFilterChain();
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-Gateway-Secret", GATEWAY_SECRET);
         request.addHeader("X-User-Id", "1");
         request.addHeader("X-User-Roles", "STUDENT");
 
