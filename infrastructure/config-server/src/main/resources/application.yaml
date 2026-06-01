@@ -4,17 +4,41 @@ server:
 spring:
   application:
     name: config-server
+
   profiles:
-    active: ${CONFIG_SERVER_PROFILE:git}
+    active: ${CONFIG_SERVER_PROFILE}
+
   cloud:
     config:
       server:
+
+        # ── Profil NATIVE : fichiers locaux ────────────────────────────────
         native:
           search-locations: file:${CONFIG_REPO_PATH}
+
+        # ── Profil GIT : GitHub ────────────────────────────────────────────
         git:
           uri: https://github.com/ENSIAS-MEH/development-platform-bloom
           default-label: main
           search-paths: config-repo
           username: ${GITHUB_USERNAME}
           password: ${GITHUB_TOKEN}
+          refresh-rate: 30
+          clone-on-start: true
+          force-pull: true
 
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+  endpoint:
+    health:
+      show-details: always
