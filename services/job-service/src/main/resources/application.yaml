@@ -2,7 +2,10 @@ spring:
   application:
     name: job-service
   config:
-    import: "configserver:http://localhost:8888"
+    import:
+      - "configserver:http://localhost:8888"
+  profiles:
+    active: ${CONFIG_SERVER_PROFILE}
   cloud:
     config:
       fail-fast: true

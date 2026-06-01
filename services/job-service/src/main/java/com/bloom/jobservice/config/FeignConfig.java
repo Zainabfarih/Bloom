@@ -10,16 +10,14 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 public class FeignConfig {
 
-    // NONE en prod — évite de logger les URLs et headers (qui contiennent l'API key !)
     @Bean
-    @Profile("!dev")
+    @Profile("!native")
     public Logger.Level feignLoggerLevelProd() {
         return Logger.Level.NONE;
     }
 
-    // BASIC uniquement en dev — pour débugger
     @Bean
-    @Profile("dev")
+    @Profile("native")
     public Logger.Level feignLoggerLevelDev() {
         return Logger.Level.BASIC;
     }
