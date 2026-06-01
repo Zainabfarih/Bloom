@@ -16,7 +16,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    public record ErrorResponse(String code, String message, Instant timestamp) {}
+    public record ErrorResponse(String code, String message, Instant timestamp) {
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
@@ -26,7 +27,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(JobsApiException.class)
     public ResponseEntity<ErrorResponse> handleJobsApi(JobsApiException ex) {
-        // Message générique — ne jamais exposer les détails de l'API externe
         log.error("JobsAPI error: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ErrorResponse(

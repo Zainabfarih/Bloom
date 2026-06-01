@@ -27,16 +27,12 @@ public class SavedJob {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Identifiant métier exposé dans les APIs — jamais l'id interne
     @Column(name = "uuid", nullable = false, unique = true, updatable = false)
     private UUID uuid;
 
-    // ID de l'étudiant — vient du header X-User-Id (injecté par gateway)
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    // UUID du CV utilisé pour le skill matching — OBLIGATOIRE
-    // L'étudiant uploade son CV dans cv-service qui extrait ses skills
     @Column(name = "cv_uuid", nullable = false, updatable = false)
     private UUID cvUuid;
 
@@ -72,7 +68,7 @@ public class SavedJob {
 
     @PrePersist
     private void prePersist() {
-        if (uuid == null)    uuid    = UUID.randomUUID();
+        if (uuid == null) uuid = UUID.randomUUID();
         if (savedAt == null) savedAt = Instant.now();
     }
 

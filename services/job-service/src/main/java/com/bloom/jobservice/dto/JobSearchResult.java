@@ -8,16 +8,6 @@ import java.util.List;
 
 /**
  * JobSearchResult — DTO exposé dans /api/job/search.
- *
- * Ne contient PAS :
- *   - description  (volumineuse, inutile pour la liste)
- *   - extractedSkills (extraction lazy — uniquement sur /api/job/{id})
- *
- * Contient :
- *   - jobId      → identifiant externe SerpAPI (utilisé pour GET /api/job/{id} et POST /saved)
- *   - title, companyName, location
- *   - extensions → ["Full-time", "6 days ago", "No degree mentioned"] tel quel depuis SerpAPI
- *   - applyOptions → liens de candidature directs
  */
 @Data
 @Builder

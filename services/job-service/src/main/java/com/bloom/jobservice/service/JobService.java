@@ -16,23 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
-/**
- * JobService — responsable de la recherche et du détail des offres d'emploi.
- *
- * ARCHITECTURE CACHE REDIS (deux niveaux) :
- *
- *   1) SEARCH CACHE   jobs:search:{md5(query|location)}  TTL 24h
- *      → Stocke List<JobResult> COMPLET (avec description) pour usage interne.
- *      → Réponse HTTP = JobSearchResult (sans description, sans skills).
- *
- *   2) INDEX INVERSÉ  jobs:jobid:{jobId}  TTL 24h
- *      → Valeur = searchCacheKey correspondant.
- *      → Permet à getJobDetail() de retrouver un job par son ID sans re-appeler SerpAPI.
- *
- *   3) SKILL CACHE    jobs:detail:{jobId}  TTL 24h
- *      → Stocke List<String> des skills extraits par Ollama.
- *      → Ollama n'est appelé qu'UNE SEULE FOIS par job (lazy, au premier /detail).
- */
 @Service
 @Slf4j
 public class JobService {
@@ -65,13 +48,6 @@ public class JobService {
     private static final Duration CACHE_TTL     = Duration.ofHours(24);
     private static final int      QUOTA_WARN    = 80;
 
-    // ── /search ────────────────────────────────────────────────────────────────
-
-    /**
-     * Recherche des jobs via SerpAPI (ou cache Redis 24h).
-     * Retourne JobSearchResult : title, company, location, extensions, applyOptions.
-     * PAS de description, PAS d'extractedSkills (extraction lazy via /detail/{jobId}).
-     */
     public JobSearchResponse searchJobs(String query, String location) {
         String searchKey = buildSearchKey(query, location);
 
@@ -81,7 +57,7 @@ public class JobService {
             return buildSearchResponse(cached, true);
         }
 
-        log.debug("Search cache MISS — appel SerpAPI");
+        log.debug("Search cache MISS — calling SerpAPI");
         try {
             JobResponse response = jobsApiClient.searchJobs(
                     "google_jobs",
@@ -98,10 +74,8 @@ public class JobService {
                     ? response.getJobsResults()
                     : List.of();
 
-            // Cache principal : List<JobResult> complets (description incluse)
             jobsRedisTemplate.opsForValue().set(searchKey, results, CACHE_TTL);
 
-            // Index inversé : jobId → searchKey (pour retrouver le job par ID dans /detail)
             results.forEach(job -> {
                 if (job.getJobId() != null) {
                     genericRedisTemplate.opsForValue()
@@ -117,25 +91,11 @@ public class JobService {
         }
     }
 
-    // ── /detail/{jobId} ────────────────────────────────────────────────────────
-
-    /**
-     * Retourne le détail complet d'un job + skills extraits par Ollama.
-     *
-     * FLOW :
-     *   1. Index  jobs:jobid:{jobId}  → searchCacheKey
-     *   2. Cache  jobs:search:{key}  → List<JobResult> → trouve le bon job
-     *   3. Cache  jobs:detail:{jobId} → List<String> skills (si déjà extrait)
-     *   4. Sinon → Ollama → met en cache
-     *
-     * ERREUR : si le job n'est pas en cache (jamais searchés ou TTL expiré)
-     *   → ResourceNotFoundException avec message explicatif.
-     */
     public JobDetailResponse getJobDetail(String jobId) {
         JobResult job = findJobInCache(jobId);
         if (job == null) {
             throw new ResourceNotFoundException(
-                    "Job introuvable en cache. Effectuez d'abord une recherche contenant ce job. jobId=" + jobId);
+                    "Job not found in cache. Run a search containing this job first. jobId=" + jobId);
         }
 
         String skillKey = DETAIL_PREFIX + jobId;
@@ -146,20 +106,16 @@ public class JobService {
             return toDetailResponse(job, cachedSkills, true);
         }
 
-        // Premier accès : extraction Ollama (une seule fois par job)
-        log.debug("Skills cache MISS — extraction Ollama pour jobId={}", jobId);
+        log.debug("Skills cache MISS — extracting with Ollama for jobId={}", jobId);
         List<String> skills = skillExtractor.extract(job.getDescription());
         skillsRedisTemplate.opsForValue().set(skillKey, skills, CACHE_TTL);
-        log.info("Skills extraits et mis en cache — jobId={}, count={}", jobId, skills.size());
+        log.info("Skills extracted and cached — jobId={}, count={}", jobId, skills.size());
 
         return toDetailResponse(job, skills, false);
     }
 
-    // ── Admin ──────────────────────────────────────────────────────────────────
-
     public void evictCache(String query, String location) {
         String searchKey = buildSearchKey(query, location);
-        // Supprime d'abord les index associés
         List<JobResult> jobs = safeGetJobList(searchKey);
         if (jobs != null) {
             jobs.forEach(job -> {
@@ -173,15 +129,11 @@ public class JobService {
         log.info("Cache evicted — searchKey={}", searchKey);
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
-
     private JobResult findJobInCache(String jobId) {
         try {
             Object searchKeyObj = genericRedisTemplate.opsForValue().get(JOBID_INDEX + jobId);
-            if (searchKeyObj == null) {
-                log.debug("Aucun index trouvé pour jobId={}", jobId);
-                return null;
-            }
+            if (searchKeyObj == null) return null;
+
             List<JobResult> jobs = jobsRedisTemplate.opsForValue().get(searchKeyObj.toString());
             if (jobs == null) return null;
 
@@ -191,7 +143,7 @@ public class JobService {
                     .orElse(null);
 
         } catch (Exception e) {
-            log.warn("Erreur index lookup pour jobId={}: {}", jobId, e.getMessage());
+            log.warn("Index lookup failed for jobId={}: {}", jobId, e.getMessage());
             return null;
         }
     }

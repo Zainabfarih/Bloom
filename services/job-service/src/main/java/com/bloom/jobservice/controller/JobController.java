@@ -30,12 +30,6 @@ public class JobController {
 
     // ─── Search ──────────────────────────────────────────────────────────────
 
-    /**
-     * Recherche d'offres via SerpAPI (ou cache Redis 24h).
-     * Retourne une liste allégée : title, company, location, extensions, applyOptions.
-     * PAS de description, PAS de skills (extraction lazy via /detail/{jobId}).
-     * Accessible sans authentification.
-     */
     @GetMapping("/search")
     @Operation(summary = "Search jobs — résultats SerpAPI, cached 24h, sans skills (lazy extraction)")
     public ResponseEntity<JobSearchResponse> search(
@@ -45,18 +39,10 @@ public class JobController {
         return ResponseEntity.ok(jobService.searchJobs(query, location));
     }
 
-    /**
-     * Détail d'un job par son jobId SerpAPI (champ job_id dans /search).
-     * Déclenche l'extraction des skills via Ollama si non encore en cache.
-     * Retourne : description complète + extractedSkills + métadonnées.
-     *
-     * Le jobExternalId (champ job_id SerpAPI) doit être URL-encodé si nécessaire.
-     * Utilisez les paramètres applyOptions du job pour candidater directement.
-     *
-     * Accessible sans authentification (lecture seule).
-     */
+    // ─── Job details ──────────────────────────────────────────────────────────────
+
     @GetMapping("/{jobId}")
-    @Operation(summary = "Détail d'un job + skills extraits (Ollama, cached 24h) — nécessite un search préalable")
+    @Operation(summary = "Détail d'un job + skills extraits — nécessite un search préalable")
     public ResponseEntity<JobDetailResponse> getJobDetail(
             @PathVariable String jobId) {
 
@@ -65,11 +51,6 @@ public class JobController {
 
     // ─── Favourites ──────────────────────────────────────────────────────────
 
-    /**
-     * Sauvegarde un job en favoris et calcule le score de compatibilité.
-     * Le champ requiredSkills doit être fourni (issu de /api/job/{jobId}.extractedSkills).
-     * Les champs matchedSkills, missingSkills et compatibilityScore sont calculés server-side.
-     */
     @PostMapping("/saved")
     @Operation(summary = "Save a job — skill matching vs CV, score calculé server-side")
     public ResponseEntity<SavedJobResponse> save(

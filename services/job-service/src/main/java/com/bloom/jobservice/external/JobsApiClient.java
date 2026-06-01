@@ -7,18 +7,17 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(
-        name          = "jobs-api",
-        url           = "${jobsapi.base-url}",
+        name = "jobs-api",
+        url = "${jobsapi.base-url}",
         configuration = FeignConfig.class
 )
 public interface JobsApiClient {
 
-    // AJOUT DE .json ICI pour SerpApi
     @GetMapping("/search.json")
     JobResponse searchJobs(
-            @RequestParam("engine")   String engine,   // Pour toi : "google_jobs"
-            @RequestParam("q")        String query,    // ex: "Java Developer"
-            @RequestParam("location") String location, // ex: "Paris, France"
-            @RequestParam("api_key")  String apiKey    // Ta clé ${jobsapi.key}
+            @RequestParam("engine") String engine,
+            @RequestParam("q") String query,
+            @RequestParam("location") String location,
+            @RequestParam("api_key") String apiKey
     );
 }

@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * Réponse de /api/job/search — liste allégée (sans description ni skills).
+ * Réponse de /api/job/search - Liste.
  */
 @Data
 @Builder

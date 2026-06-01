@@ -26,17 +26,10 @@ public class SaveJobRequest {
 
     private String jobApplyUrl;
 
-    // Skills de l'offre d'emploi (extraits via GET /api/job/{jobId})
     private List<String> requiredSkills;
 
-    // UUID du CV à utiliser pour le matching (optionnel).
-    // Si absent → job-service appelle cv-service pour récupérer le CV actif de l'user.
-    // Si présent → job-service appelle cv-service pour ce CV spécifique.
-    // Dans les deux cas, cv-service retourne les skills extraits du PDF uploadé.
     private UUID cvUuid;
 
-    // ── Calculés server-side par SkillMatchingService ─────────────────
-    // Ignorés si envoyés par le client dans le body
     @JsonIgnore
     private List<String> matchedSkills;
 
