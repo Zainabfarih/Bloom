@@ -62,6 +62,11 @@ management:
     gateway:
       enabled: true
 
+internal:
+  security:
+    gateway-secret: ${INTERNAL_GATEWAY_SECRET}
+
+
 resilience4j:
   circuitbreaker:
     instances:

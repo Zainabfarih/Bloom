@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,16 +22,27 @@ import java.util.List;
 @Slf4j
 public class GatewayAuthFilter extends OncePerRequestFilter {
 
+    @Value("${internal.security.gateway-secret}")
+    private String expectedSecret;
+
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain chain)
             throws ServletException, IOException {
 
-        String userIdHeader = request.getHeader("X-User-Id");
-        String rolesHeader  = request.getHeader("X-User-Roles");
+        String gatewaySecretHeader = request.getHeader("X-Gateway-Secret");
+        String userIdHeader        = request.getHeader("X-User-Id");
+        String rolesHeader         = request.getHeader("X-User-Roles");
 
         if (userIdHeader != null) {
+
+            if (gatewaySecretHeader == null || !gatewaySecretHeader.trim().equals(expectedSecret)) {
+                log.warn("Usurpation d'identité ou contournement de la Gateway détecté ! Chemin: {}", request.getRequestURI());
+                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Direct access to this microservice is forbidden.");
+                return;
+            }
+
             try {
                 Long userId = Long.valueOf(userIdHeader);
 
@@ -41,17 +53,19 @@ public class GatewayAuthFilter extends OncePerRequestFilter {
                         : List.of();
 
                 var auth = new UsernamePasswordAuthenticationToken(
-                        userId,      // ← auth.getPrincipal() dans le controller = Long userId ✅
+                        userId,
                         null,
                         authorities
                 );
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
-                log.debug("Gateway auth — userId={}, roles={}", userId, rolesHeader);
+                log.debug("Gateway auth validée — userId={}, roles={}", userId, rolesHeader);
 
             } catch (NumberFormatException e) {
-                log.warn("Invalid X-User-Id header: {}", userIdHeader);
+                log.warn("Format de header X-User-Id invalide: {}", userIdHeader);
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid user identifier format.");
+                return;
             }
         }
 

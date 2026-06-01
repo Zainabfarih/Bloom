@@ -18,22 +18,25 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  spring:
-    flyway:
-      enabled: true
-      locations: classpath:db/migration
-      validate-on-migrate: true
-      out-of-order: false
-      url: ${DB_JOB_URL_DIRECT}
-      user: ${DB_JOB_USERNAME}        # ← "user" pas "username"
-      password: ${DB_JOB_PASSWORD}
-      baseline-on-migrate: true       # ← sécurité si la DB n'est pas vide
-      clean-disabled: false
-
   data:
     redis:
       url: ${REDIS_URL}
       timeout: 2000ms
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    out-of-order: false
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+    baseline-on-migrate: true
+    clean-disabled: false
+
+internal:
+  security:
+    gateway-secret: ${INTERNAL_GATEWAY_SECRET}
 
 skill:
   extractor:
@@ -41,11 +44,6 @@ skill:
       model-url: ${SKILL_EXTRACTOR_HF_MODEL_URL}
     gemini:
       key: ${GEMINI_API_KEY_JOB_SKILLS}
-    # Ollama — solution alternative self-hosted (décommenter pour activer)
-    # ollama:
-    #   url: ${SKILL_EXTRACTOR_OLLAMA_URL}
-    #   model: ${SKILL_EXTRACTOR_OLLAMA_MODEL}
-    #   timeout-seconds: 120   # Minimum 120s recommandé sur CPU local
 
 jobsapi:
   base-url: ${JOBSAPI_BASE_URL}
