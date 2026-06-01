@@ -5,6 +5,7 @@ import io.lettuce.core.RedisURI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
@@ -18,6 +19,7 @@ import java.time.Duration;
 import java.util.List;
 
 @Configuration
+@Profile("!test")
 public class RedisConfig {
 
     @Value("${spring.data.redis.url}")
@@ -83,5 +85,4 @@ public class RedisConfig {
 
         return (RedisTemplate<String, Object>) (RedisTemplate<?, ?>) template;
     }
-
 }

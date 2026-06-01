@@ -16,13 +16,13 @@ spring:
       ddl-auto: create-drop
     show-sql: false
 
-
   flyway:
     enabled: false
 
   data:
     redis:
       url: redis://localhost:6379
+      timeout: 2s
 
 
 jwt:
