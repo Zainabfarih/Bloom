@@ -3,6 +3,7 @@ package com.bloom.jobservice.config;
 import com.bloom.jobservice.dto.JobResult;
 import io.lettuce.core.RedisURI;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,7 @@ public class RedisConfig {
     private String redisUrl;
 
     @Bean
+    @ConditionalOnMissingBean(RedisConnectionFactory.class)
     @ConditionalOnProperty(name = "redis.ssl.enabled", havingValue = "true")
     public RedisConnectionFactory redisConnectionFactory(
             @Value("${spring.data.redis.timeout}") Duration commandTimeout) {
@@ -43,6 +45,7 @@ public class RedisConfig {
 
 
     @Bean
+    @ConditionalOnMissingBean(RedisConnectionFactory.class)
     @ConditionalOnProperty(name = "redis.ssl.enabled", havingValue = "false",
             matchIfMissing = true)
     public RedisConnectionFactory redisConnectionFactoryNoSsl() {
@@ -56,6 +59,7 @@ public class RedisConfig {
 
     @SuppressWarnings("unchecked")
     @Bean("jobsRedisTemplate")
+    @ConditionalOnMissingBean(name = "jobsRedisTemplate")
     public RedisTemplate<String, List<JobResult>> jobsRedisTemplate(RedisConnectionFactory factory) {
         JacksonJsonRedisSerializer<List> serializer = new JacksonJsonRedisSerializer<>(List.class);
         RedisTemplate<String, List<JobResult>> template = new RedisTemplate<>();
@@ -68,6 +72,7 @@ public class RedisConfig {
 
     @SuppressWarnings("unchecked")
     @Bean("skillsRedisTemplate")
+    @ConditionalOnMissingBean(name = "skillsRedisTemplate")
     public RedisTemplate<String, List<String>> skillsRedisTemplate(RedisConnectionFactory factory) {
         JacksonJsonRedisSerializer<List> serializer = new JacksonJsonRedisSerializer<>(List.class);
         RedisTemplate<String, List<String>> template = new RedisTemplate<>();
@@ -80,6 +85,7 @@ public class RedisConfig {
 
     @SuppressWarnings("unchecked")
     @Bean("genericRedisTemplate")
+    @ConditionalOnMissingBean(name = "genericRedisTemplate")
     public RedisTemplate<String, Object> genericRedisTemplate(RedisConnectionFactory factory) {
         StringRedisTemplate template = new StringRedisTemplate();
         template.setConnectionFactory(factory);

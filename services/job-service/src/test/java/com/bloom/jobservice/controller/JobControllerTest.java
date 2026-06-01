@@ -40,7 +40,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "skill.extractor.gemini.key=test-gemini-key",
         "skill.extractor.hf.model-url=http://localhost/hf-mock"
 })
-@Import({SecurityConfig.class, GatewayAuthFilter.class, GlobalExceptionHandler.class})
+@Import({SecurityConfig.class, GatewayAuthFilter.class, GlobalExceptionHandler.class,
+        com.bloom.jobservice.config.TestRedisConfig.class})
 class JobControllerTest {
 
     @Autowired
