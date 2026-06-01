@@ -1,0 +1,53 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-service
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true #why not use this in production?
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  cloud:
+    config:
+      enabled: false
+  mail:
+    host: ${MAIL_HOST}
+    port: 587
+    username: ${MAIL_USER}
+    password: ${MAIL_PASS}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 900000      # 15min
+  refresh-token-expiration: 604800000  # 7j
+app:
+  password-reset-token-expiration: 3600000 # 1 hour
+  frontend-url: ${FRONTEND_URL}
+  max-failed-login-attempts: 5
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    # Optionnel : Si vous testez sans lancer votre Eureka Server, mettez ces deux lignes à 'false' pour éviter les erreurs rouges au démarrage :
+      fetch-registry: false
+      register-with-eureka: false
+
+logging:
+  level:
+    org.springframework.security: TRACE

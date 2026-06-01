@@ -1,0 +1,30 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://db.kqbquwbzbzxfwbfiayxy.supabase.co:5432/postgres
+    username: postgres
+    password: MiFkT#DQVj+5H,_
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+      connection:
+        ssl: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  access-token-expiration: 86400000
+  refresh-token-expiration: 604800000
+  password-reset-expiration: 900000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
