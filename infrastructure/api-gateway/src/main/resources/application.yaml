@@ -3,7 +3,35 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
       routes:
+
+        # ── Job Service ────────────────────────────────────────────
+        - id: job-service
+          uri: lb://job-service
+          predicates:
+            - Path=/api/job/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: job-service-cb
+                fallbackUri: forward:/fallback/job
+
+        # ── CV Service ─────────────────────────────────────────────
+        - id: cv-service
+          uri: lb://cv-service
+          predicates:
+            - Path=/api/cv/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: cv-service-cb
+                fallbackUri: forward:/fallback/cv
+                
+        # ── Auth Service ───────────────────────────────────────────── 
         - id: auth-service
           uri: lb://auth-service
           predicates:
@@ -11,10 +39,55 @@ spring:
           filters:
             - StripPrefix=0
 
+  boot:
+    admin:
+      client:
+        url: ${ADMIN_SERVER_URL:http://localhost:8090}
+        username: ${ADMIN_USERNAME:admin}
+        password: ${ADMIN_PASSWORD:admin}
+
 server:
   port: 8080
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+
+internal:
+  security:
+    gateway-secret: ${INTERNAL_GATEWAY_SECRET}
+
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      job-service-cb:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+      auth-service-cb:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+      cv-service-cb:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
