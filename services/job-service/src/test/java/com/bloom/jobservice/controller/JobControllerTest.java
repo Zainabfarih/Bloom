@@ -33,15 +33,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.cloud.config.enabled=false",
         "spring.config.import=",
         "eureka.client.enabled=false",
-        "spring.data.redis.url=redis://localhost:6379",
-        "redis.ssl.enabled=false",
+        "eureka.client.register-with-eureka=false",
+        "eureka.client.fetch-registry=false",
+        "spring.data.redis.enabled=false",
         "jobsapi.base-url=http://localhost",
         "jobsapi.key=test-key",
         "skill.extractor.gemini.key=test-gemini-key",
         "skill.extractor.hf.model-url=http://localhost/hf-mock"
 })
-@Import({SecurityConfig.class, GatewayAuthFilter.class, GlobalExceptionHandler.class,
-        com.bloom.jobservice.config.TestRedisConfig.class})
+@Import({SecurityConfig.class, GatewayAuthFilter.class, GlobalExceptionHandler.class})
 class JobControllerTest {
 
     @Autowired
