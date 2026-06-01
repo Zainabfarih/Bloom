@@ -28,7 +28,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(JobController.class)
-@TestPropertySource(properties = {"internal.security.gateway-secret=test-gateway-secret"})
+@TestPropertySource(properties = {
+        "internal.security.gateway-secret=test-gateway-secret",
+        "spring.cloud.config.enabled=false",
+        "spring.config.import=",
+        "eureka.client.enabled=false",
+        "spring.data.redis.url=redis://localhost:6379",
+        "redis.ssl.enabled=false",
+        "jobsapi.base-url=http://localhost",
+        "jobsapi.key=test-key",
+        "skill.extractor.gemini.key=test-gemini-key",
+        "skill.extractor.hf.model-url=http://localhost/hf-mock"
+})
 @Import({SecurityConfig.class, GatewayAuthFilter.class, GlobalExceptionHandler.class})
 class JobControllerTest {
 
