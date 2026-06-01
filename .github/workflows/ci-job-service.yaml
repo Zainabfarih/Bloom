@@ -5,6 +5,17 @@ on:
     branches: [ main ]
     paths:
       - 'services/job-service/**'
+      - '.github/workflows/job-service.yml'   
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-job-service-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MVN: "mvn -B --no-transfer-progress"
 
 jobs:
 
@@ -19,7 +30,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Compile
-        run: mvn clean compile -q
+        run: $MVN clean compile
         working-directory: services/job-service
 
   level2-tests:
@@ -34,17 +45,27 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Tests
-        run: mvn test
+        run: $MVN test
         working-directory: services/job-service
         env:
           SPRING_CLOUD_CONFIG_FAIL_FAST: 'false'
           SPRING_CLOUD_CONFIG_ENABLED: 'false'
           SPRING_CLOUD_CONFIG_IMPORT_CHECK_ENABLED: 'false'
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload surefire reports (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-job-service
+          path: services/job-service/target/surefire-reports/
+
+      - name: Upload coverage (JaCoCo)
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: jacoco-job-service
           path: services/job-service/target/site/jacoco/
+          if-no-files-found: warn
 
   level3-build:
     name: "[job-service] Niveau 3 — Build final"
@@ -59,12 +80,12 @@ jobs:
           cache: maven
       - name: Vérification version SNAPSHOT
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          VERSION=$($MVN help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ "$VERSION" != *-SNAPSHOT ]]; then
             echo "La version '$VERSION' doit être un SNAPSHOT sur une PR"
             exit 1
           fi
         working-directory: services/job-service
       - name: Build final
-        run: mvn verify -DskipTests
+        run: $MVN verify -DskipTests
         working-directory: services/job-service
