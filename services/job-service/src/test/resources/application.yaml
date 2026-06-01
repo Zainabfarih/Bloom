@@ -1,0 +1,59 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# application.yaml — profil TEST uniquement
+# Chargé par @ActiveProfiles("test") dans les @SpringBootTest
+# ══════════════════════════════════════════════════════════════════════════════
+
+spring:
+  # ── Config Server désactivé ─────────────────────────────────────────────────
+  # Pas besoin que le Config Server soit lancé pendant les tests.
+  cloud:
+    config:
+      enabled: false
+  config:
+    import: ""   # Empêche Spring de tenter de joindre le Config Server
+
+  # ── Base de données H2 (remplace PostgreSQL) ────────────────────────────────
+  # H2 en mémoire, mode PostgreSQL pour compatibilité des requêtes.
+  datasource:
+    url: jdbc:h2:mem:bloom_job_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop   # Crée les tables depuis les entités, les supprime après
+    show-sql: false
+
+  # ── Flyway désactivé ─────────────────────────────────────────────────────────
+  # Le schéma est géré par ddl-auto=create-drop en test.
+  flyway:
+    enabled: false
+
+  # ── Redis — URL minimale (templates mockés via @MockBean dans les tests) ─────
+  data:
+    redis:
+      url: redis://localhost:6379
+
+# ── Valeurs factices pour les beans qui lisent des @Value au démarrage ─────────
+# Aucun appel réseau réel — juste pour que le contexte Spring démarre.
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLW9ubHktMTI4Yml0cw==
+
+jobsapi:
+  base-url: http://localhost
+  key: test-key
+
+skill:
+  extractor:
+    hf:
+      model-url: http://localhost/hf-mock
+    gemini:
+      key: test-gemini-key
+
+# ── Logs silencieux en test ────────────────────────────────────────────────────
+logging:
+  level:
+    com.bloom: WARN
+    org.springframework.security: WARN
+    org.hibernate: WARN

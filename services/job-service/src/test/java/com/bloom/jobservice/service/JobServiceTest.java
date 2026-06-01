@@ -21,15 +21,23 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class JobServiceTest {
 
-    @Mock private RedisTemplate<String, List<JobResult>> jobsRedisTemplate;
-    @Mock private RedisTemplate<String, List<String>>    skillsRedisTemplate;
-    @Mock private RedisTemplate<String, Object>          genericRedisTemplate;
-    @Mock private JobsApiClient     jobsApiClient;
-    @Mock private JobSkillExtractor skillExtractor;
+    @Mock
+    private RedisTemplate<String, List<JobResult>> jobsRedisTemplate;
+    @Mock
+    private RedisTemplate<String, List<String>> skillsRedisTemplate;
+    @Mock
+    private RedisTemplate<String, Object> genericRedisTemplate;
+    @Mock
+    private JobsApiClient jobsApiClient;
+    @Mock
+    private JobSkillExtractor skillExtractor;
 
-    @Mock private ValueOperations<String, List<JobResult>> jobsOps;
-    @Mock private ValueOperations<String, List<String>>    skillsOps;
-    @Mock private ValueOperations<String, Object>          genericOps;
+    @Mock
+    private ValueOperations<String, List<JobResult>> jobsOps;
+    @Mock
+    private ValueOperations<String, List<String>> skillsOps;
+    @Mock
+    private ValueOperations<String, Object> genericOps;
 
     private JobService jobService;
 
@@ -57,8 +65,6 @@ class JobServiceTest {
         assertThat(result.getTotalResults()).isEqualTo(1);
         assertThat(result.getJobs()).hasSize(1);
         assertThat(result.getJobs().get(0).getJobId()).isEqualTo("id-1");
-        // Vérification : description et extractedSkills ABSENTS du JobSearchResult
-        // (ils n'existent pas dans JobSearchResult — design intentionnel)
         verifyNoInteractions(jobsApiClient, skillExtractor);
     }
 
@@ -79,11 +85,8 @@ class JobServiceTest {
 
         assertThat(result.isFromCache()).isFalse();
         assertThat(result.getTotalResults()).isEqualTo(2);
-        // Vérif que Ollama N'est PAS appelé lors du search
         verifyNoInteractions(skillExtractor);
-        // Vérif que le cache est peuplé
         verify(jobsOps).set(anyString(), eq(apiResults), any());
-        // Vérif que l'index inversé est créé (2 jobs → 2 sets dans genericOps)
         verify(genericOps, times(2)).set(startsWith("jobs:jobid:"), anyString(), any());
     }
 
@@ -117,11 +120,9 @@ class JobServiceTest {
 
     @Test
     void getJobDetail_skills_cache_hit_returns_cached_skills() {
-        // Setup index et job
         when(genericOps.get("jobs:jobid:id-1")).thenReturn("jobs:search:abc123");
         List<JobResult> jobs = List.of(buildJobResult("id-1", "Java Dev", "ALTEN"));
         when(jobsOps.get("jobs:search:abc123")).thenReturn(jobs);
-        // Skills déjà en cache
         when(skillsOps.get("jobs:detail:id-1")).thenReturn(List.of("Java", "Spring Boot", "Kafka"));
 
         JobDetailResponse detail = jobService.getJobDetail("id-1");
@@ -129,20 +130,16 @@ class JobServiceTest {
         assertThat(detail.getJobId()).isEqualTo("id-1");
         assertThat(detail.getExtractedSkills()).containsExactly("Java", "Spring Boot", "Kafka");
         assertThat(detail.isFromSkillCache()).isTrue();
-        // Ollama PAS appelé
         verifyNoInteractions(skillExtractor);
     }
 
     @Test
     void getJobDetail_skills_cache_miss_calls_ollama_and_caches() {
-        // Setup index et job
         when(genericOps.get("jobs:jobid:id-2")).thenReturn("jobs:search:def456");
         JobResult job = buildJobResult("id-2", "Senior Java", "Arrow");
         job.setDescription("Design microservices with Spring Boot, Kafka and PostgreSQL.");
         when(jobsOps.get("jobs:search:def456")).thenReturn(List.of(job));
-        // Pas de skills en cache
         when(skillsOps.get("jobs:detail:id-2")).thenReturn(null);
-        // Ollama retourne des skills propres
         when(skillExtractor.extract(anyString())).thenReturn(List.of("Kafka", "PostgreSQL", "Spring Boot"));
 
         JobDetailResponse detail = jobService.getJobDetail("id-2");
@@ -150,13 +147,11 @@ class JobServiceTest {
         assertThat(detail.getExtractedSkills()).containsExactlyInAnyOrder("Kafka", "PostgreSQL", "Spring Boot");
         assertThat(detail.isFromSkillCache()).isFalse();
         assertThat(detail.getDescription()).isNotBlank();
-        // Vérif que le résultat Ollama est mis en cache
         verify(skillsOps).set(eq("jobs:detail:id-2"), any(), any());
     }
 
     @Test
     void getJobDetail_job_not_in_cache_throws_ResourceNotFoundException() {
-        // Pas d'index pour ce jobId
         when(genericOps.get("jobs:jobid:unknown-id")).thenReturn(null);
 
         assertThatThrownBy(() -> jobService.getJobDetail("unknown-id"))
@@ -168,7 +163,6 @@ class JobServiceTest {
 
     @Test
     void getJobDetail_index_exists_but_job_list_not_found_throws() {
-        // Index existe mais la liste de jobs a expiré
         when(genericOps.get("jobs:jobid:id-3")).thenReturn("jobs:search:expired");
         when(jobsOps.get("jobs:search:expired")).thenReturn(null);
 
@@ -209,9 +203,6 @@ class JobServiceTest {
         return job;
     }
 
-    /**
-     * Reproduit la logique buildSearchKey pour les assertions dans les tests.
-     */
     private String buildExpectedSearchKey(String query, String location) {
         String raw = (query + "|" + (location != null ? location : "")).toLowerCase().trim();
         return "jobs:search:" + org.springframework.util.DigestUtils

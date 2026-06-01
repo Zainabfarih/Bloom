@@ -4,10 +4,13 @@ import com.bloom.jobservice.dto.SaveJobRequest;
 import com.bloom.jobservice.dto.SavedJobResponse;
 import com.bloom.jobservice.dto.SkillsDTO;
 import com.bloom.jobservice.entity.SavedJob;
+import com.bloom.jobservice.exception.JobsApiException;
+import com.bloom.jobservice.exception.ResourceNotFoundException;
 import com.bloom.jobservice.external.CvServiceClient;
-import com.bloom.jobservice.mapper.SavedJobMapper;
 import com.bloom.jobservice.repository.SavedJobRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,155 +23,258 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SavedJobServiceTest {
 
-    @Mock
-    private SavedJobRepository savedJobRepository;
-    @Mock
-    private SavedJobMapper savedJobMapper;
-    @Mock
-    private SkillMatchingService skillMatchingService;
-    @Mock
-    private CvServiceClient cvServiceClient;
+    @Mock private SavedJobRepository   savedJobRepository;
+    @Mock private SkillMatchingService skillMatchingService;
+    @Mock private CvServiceClient      cvServiceClient;
 
     @InjectMocks
     private SavedJobService savedJobService;
 
-    private SaveJobRequest request;
-    private final Long userId = 1L;
-    private final String bearerToken = "Bearer test-token";
+    private static final Long   USER_ID    = 1L;
+    private static final String BEARER     = "Bearer test-token";
+    private static final String JOB_EXT_ID = "ext-123";
+    private static final UUID   CV_UUID    = UUID.randomUUID();
+
+    private SaveJobRequest baseRequest;
 
     @BeforeEach
     void setUp() {
-        request = new SaveJobRequest();
-        request.setJobExternalId("ext-123");
-        request.setJobTitle("Java Developer");
-        request.setJobCompany("TechCorp");
-        request.setRequiredSkills(List.of("Java", "Docker"));
+        baseRequest = new SaveJobRequest();
+        baseRequest.setJobExternalId(JOB_EXT_ID);
+        baseRequest.setJobTitle("Java Developer");
+        baseRequest.setJobCompany("TechCorp");
+        baseRequest.setRequiredSkills(List.of("Java", "Docker", "PostgreSQL"));
     }
 
-    @Test
-    void save_job_computes_matching_and_persists() {
-        // Given
-        SkillsDTO skills = new SkillsDTO();
-        skills.setSkills(List.of("java", "python"));
 
-        SavedJob entity = SavedJob.builder()
-                .id(1L).uuid(UUID.randomUUID())
-                .userId(userId)
-                .jobExternalId("ext-123")
+    @Nested
+    @DisplayName("saveJob")
+    class SaveJobTests {
+
+        @Test
+        @DisplayName("Nouveau job : calcule le matching et persiste")
+        void save_new_job_computes_matching_and_persists() {
+            SkillsDTO cvData = buildCvSkills(CV_UUID, List.of("Java", "Python"));
+            SavedJob  entity = buildSavedJob(50);
+
+            when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
+                    .thenReturn(Optional.empty());
+            when(cvServiceClient.getUserSkills(USER_ID, BEARER)).thenReturn(cvData);
+            when(skillMatchingService.findMatched(any(), any())).thenReturn(List.of("Java"));
+            when(skillMatchingService.findMissing(any(), any())).thenReturn(List.of("Docker", "PostgreSQL"));
+            when(skillMatchingService.computeScore(any(), any())).thenReturn(50);
+            when(savedJobRepository.save(any())).thenReturn(entity);
+
+            SavedJobResponse result = savedJobService.saveJob(USER_ID, baseRequest, BEARER);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getCompatibilityScore()).isEqualTo(50);
+            verify(savedJobRepository).save(any());
+            verify(skillMatchingService).computeScore(any(), any());
+            verify(cvServiceClient).getUserSkills(USER_ID, BEARER);
+            verify(cvServiceClient, never()).getCvSkills(any(), any());
+        }
+
+        @Test
+        @DisplayName("Idempotent : retourne l'existant sans doublon ni appel cv-service")
+        void save_job_is_idempotent_when_already_saved() {
+            SavedJob existing = buildSavedJob(75);
+
+            when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
+                    .thenReturn(Optional.of(existing));
+
+            SavedJobResponse result = savedJobService.saveJob(USER_ID, baseRequest, BEARER);
+
+            assertThat(result.getJobExternalId()).isEqualTo(JOB_EXT_ID);
+            assertThat(result.getCompatibilityScore()).isEqualTo(75);
+            verify(savedJobRepository, never()).save(any());
+            verify(cvServiceClient, never()).getUserSkills(anyLong(), anyString());
+            verify(cvServiceClient, never()).getCvSkills(any(), anyString());
+        }
+
+        @Test
+        @DisplayName("cvUuid fourni → appelle getCvSkills (cv spécifique), pas getUserSkills")
+        void save_job_with_specific_cv_uuid_calls_getCvSkills() {
+            baseRequest.setCvUuid(CV_UUID);
+            SkillsDTO cvData = buildCvSkills(CV_UUID, List.of("Java", "Spring Boot"));
+            SavedJob  entity = buildSavedJob(33);
+
+            when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
+                    .thenReturn(Optional.empty());
+            when(cvServiceClient.getCvSkills(CV_UUID, BEARER)).thenReturn(cvData);
+            when(skillMatchingService.findMatched(any(), any())).thenReturn(List.of("Java", "Spring Boot"));
+            when(skillMatchingService.findMissing(any(), any())).thenReturn(List.of("Docker"));
+            when(skillMatchingService.computeScore(any(), any())).thenReturn(33);
+            when(savedJobRepository.save(any())).thenReturn(entity);
+
+            savedJobService.saveJob(USER_ID, baseRequest, BEARER);
+
+            verify(cvServiceClient).getCvSkills(CV_UUID, BEARER);
+            verify(cvServiceClient, never()).getUserSkills(anyLong(), anyString());
+        }
+
+        @Test
+        @DisplayName("cv-service KO → lève JobsApiException (pas de sauvegarde partielle)")
+        void save_job_throws_JobsApiException_when_cv_service_is_down() {
+            when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
+                    .thenReturn(Optional.empty());
+            when(cvServiceClient.getUserSkills(USER_ID, BEARER))
+                    .thenThrow(new RuntimeException("Connection refused"));
+
+            assertThatThrownBy(() -> savedJobService.saveJob(USER_ID, baseRequest, BEARER))
+                    .isInstanceOf(JobsApiException.class)
+                    .hasMessageContaining("cv-service indisponible");
+
+            verify(savedJobRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("cv-service KO via cvUuid → lève aussi JobsApiException")
+        void save_job_with_cv_uuid_throws_when_cv_service_is_down() {
+            baseRequest.setCvUuid(CV_UUID);
+            when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
+                    .thenReturn(Optional.empty());
+            when(cvServiceClient.getCvSkills(CV_UUID, BEARER))
+                    .thenThrow(new RuntimeException("cv-service timeout"));
+
+            assertThatThrownBy(() -> savedJobService.saveJob(USER_ID, baseRequest, BEARER))
+                    .isInstanceOf(JobsApiException.class)
+                    .hasMessageContaining("cv-service indisponible");
+
+            verify(savedJobRepository, never()).save(any());
+        }
+    }
+
+
+    @Nested
+    @DisplayName("getSavedJobs")
+    class GetSavedJobsTests {
+
+        @Test
+        @DisplayName("Retourne la liste mappée depuis le repository")
+        void get_saved_jobs_returns_mapped_list() {
+            SavedJob job1 = buildSavedJob(100);
+            SavedJob job2 = buildSavedJob(60);
+            when(savedJobRepository.findByUserIdWithSkills(USER_ID))
+                    .thenReturn(List.of(job1, job2));
+
+            List<SavedJobResponse> results = savedJobService.getSavedJobs(USER_ID);
+
+            assertThat(results).hasSize(2);
+            verify(savedJobRepository).findByUserIdWithSkills(USER_ID);
+        }
+
+        @Test
+        @DisplayName("Retourne une liste vide si aucun job sauvegardé")
+        void get_saved_jobs_returns_empty_list_when_none() {
+            when(savedJobRepository.findByUserIdWithSkills(USER_ID)).thenReturn(List.of());
+
+            List<SavedJobResponse> results = savedJobService.getSavedJobs(USER_ID);
+
+            assertThat(results).isEmpty();
+        }
+    }
+
+
+    @Nested
+    @DisplayName("getByUuid")
+    class GetByUuidTests {
+
+        @Test
+        @DisplayName("Propriétaire légitime → retourne le job avec les bons champs")
+        void get_by_uuid_returns_job_for_owner() {
+            UUID uuid = UUID.randomUUID();
+            SavedJob job = buildSavedJob(80);
+            job.setUserId(USER_ID);
+
+            when(savedJobRepository.findByUuidWithSkills(uuid)).thenReturn(Optional.of(job));
+
+            SavedJobResponse result = savedJobService.getByUuid(USER_ID, uuid);
+
+            assertThat(result.getCompatibilityScore()).isEqualTo(80);
+            assertThat(result.getJobExternalId()).isEqualTo(JOB_EXT_ID);
+        }
+
+        @Test
+        @DisplayName("Mauvais propriétaire → lève ResourceNotFoundException (ownership check)")
+        void get_by_uuid_throws_when_wrong_user() {
+            UUID uuid = UUID.randomUUID();
+            SavedJob job = buildSavedJob(80);
+            job.setUserId(999L);
+
+            when(savedJobRepository.findByUuidWithSkills(uuid)).thenReturn(Optional.of(job));
+
+            assertThatThrownBy(() -> savedJobService.getByUuid(USER_ID, uuid))
+                    .isInstanceOf(ResourceNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("UUID inexistant → lève ResourceNotFoundException")
+        void get_by_uuid_throws_when_not_found() {
+            UUID uuid = UUID.randomUUID();
+            when(savedJobRepository.findByUuidWithSkills(uuid)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> savedJobService.getByUuid(USER_ID, uuid))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining(uuid.toString());
+        }
+    }
+
+
+    @Nested
+    @DisplayName("removeSavedJob")
+    class RemoveSavedJobTests {
+
+        @Test
+        @DisplayName("Suppression réussie si le job existe")
+        void remove_saved_job_succeeds_when_found() {
+            when(savedJobRepository.deleteByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
+                    .thenReturn(1);
+
+            savedJobService.removeSavedJob(USER_ID, JOB_EXT_ID);
+
+            verify(savedJobRepository).deleteByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID);
+        }
+
+        @Test
+        @DisplayName("Lève ResourceNotFoundException si 0 ligne supprimée")
+        void remove_saved_job_throws_when_not_found() {
+            when(savedJobRepository.deleteByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
+                    .thenReturn(0);
+
+            assertThatThrownBy(() -> savedJobService.removeSavedJob(USER_ID, JOB_EXT_ID))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining(String.valueOf(USER_ID));
+        }
+    }
+
+
+    private SkillsDTO buildCvSkills(UUID cvUuid, List<String> skills) {
+        SkillsDTO dto = new SkillsDTO();
+        dto.setUserId(USER_ID);
+        dto.setCvUuid(cvUuid);
+        dto.setSkills(skills);
+        return dto;
+    }
+
+    private SavedJob buildSavedJob(int score) {
+        return SavedJob.builder()
+                .id(1L)
+                .uuid(UUID.randomUUID())
+                .userId(USER_ID)
+                .cvUuid(CV_UUID)
+                .jobExternalId(JOB_EXT_ID)
                 .jobTitle("Java Developer")
+                .jobCompany("TechCorp")
+                .compatibilityScore(score)
                 .savedAt(Instant.now())
                 .build();
-
-        SavedJobResponse expectedResponse = SavedJobResponse.builder()
-                .uuid(entity.getUuid())
-                .jobExternalId("ext-123")
-                .jobTitle("Java Developer")
-                .compatibilityScore(50)
-                .build();
-
-        when(savedJobRepository.findByUserIdAndJobExternalId(userId, "ext-123"))
-                .thenReturn(Optional.empty());
-        when(cvServiceClient.getUserSkills(userId, bearerToken))
-                .thenReturn(skills);
-        when(skillMatchingService.findMatched(any(), any()))
-                .thenReturn(List.of("Java"));
-        when(skillMatchingService.findMissing(any(), any()))
-                .thenReturn(List.of("Docker"));
-        when(skillMatchingService.computeScore(any(), any()))
-                .thenReturn(50);
-        when(savedJobMapper.toEntity(any(), anyLong()))
-                .thenReturn(entity);
-        when(savedJobRepository.save(entity))
-                .thenReturn(entity);
-        when(savedJobMapper.toResponse(entity))
-                .thenReturn(expectedResponse);
-
-        // When
-        SavedJobResponse result = savedJobService.saveJob(
-                userId, request, bearerToken);
-
-        // Then
-        assertThat(result.getCompatibilityScore()).isEqualTo(50);
-        verify(savedJobRepository, times(1)).save(any());
-        verify(skillMatchingService).computeScore(any(), any());
-    }
-
-    @Test
-    void save_job_is_idempotent_when_already_saved() {
-        // Given
-        SavedJob existing = SavedJob.builder()
-                .id(1L).uuid(UUID.randomUUID())
-                .userId(userId)
-                .jobExternalId("ext-123")
-                .build();
-
-        SavedJobResponse existingResponse = SavedJobResponse.builder()
-                .uuid(existing.getUuid())
-                .jobExternalId("ext-123")
-                .build();
-
-        when(savedJobRepository.findByUserIdAndJobExternalId(userId, "ext-123"))
-                .thenReturn(Optional.of(existing));
-        when(savedJobMapper.toResponse(existing))
-                .thenReturn(existingResponse);
-
-        // When
-        SavedJobResponse result = savedJobService.saveJob(
-                userId, request, bearerToken);
-
-        // Then
-        assertThat(result.getJobExternalId()).isEqualTo("ext-123");
-        // Pas de nouvel appel à save()
-        verify(savedJobRepository, never()).save(any());
-        verify(cvServiceClient, never()).getUserSkills(anyLong(), anyString());
-    }
-
-    @Test
-    void save_job_succeeds_even_when_cv_service_is_down() {
-        // Given
-        when(savedJobRepository.findByUserIdAndJobExternalId(userId, "ext-123"))
-                .thenReturn(Optional.empty());
-        when(cvServiceClient.getUserSkills(userId, bearerToken))
-                .thenThrow(new RuntimeException("cv-service unavailable"));
-        when(skillMatchingService.findMatched(any(), any()))
-                .thenReturn(List.of());
-        when(skillMatchingService.findMissing(any(), any()))
-                .thenReturn(List.of());
-        when(skillMatchingService.computeScore(any(), any()))
-                .thenReturn(0);
-
-        SavedJob entity = SavedJob.builder()
-                .id(1L).uuid(UUID.randomUUID())
-                .userId(userId)
-                .jobExternalId("ext-123")
-                .compatibilityScore(0)
-                .savedAt(Instant.now())
-                .build();
-
-        when(savedJobMapper.toEntity(any(), anyLong())).thenReturn(entity);
-        when(savedJobRepository.save(entity)).thenReturn(entity);
-        when(savedJobMapper.toResponse(entity)).thenReturn(
-                SavedJobResponse.builder()
-                        .uuid(entity.getUuid())
-                        .compatibilityScore(0)
-                        .build()
-        );
-
-        // When — ne doit pas lever d'exception
-        SavedJobResponse result = savedJobService.saveJob(
-                userId, request, bearerToken);
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.getCompatibilityScore()).isEqualTo(0);
-        verify(savedJobRepository).save(any());
     }
 }
