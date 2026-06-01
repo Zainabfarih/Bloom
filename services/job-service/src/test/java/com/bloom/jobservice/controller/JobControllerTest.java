@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(JobController.class)
+@TestPropertySource(properties = {"internal.security.gateway-secret=test-gateway-secret"})
 @Import({SecurityConfig.class, GatewayAuthFilter.class, GlobalExceptionHandler.class})
 class JobControllerTest {
 
@@ -42,9 +44,7 @@ class JobControllerTest {
     @MockitoBean
     private SavedJobService savedJobService;
 
-    // =========================================================================
-    // 1. RECHERCHE DE JOBS (GET /api/job/search)
-    // =========================================================================
+
     @Nested
     @DisplayName("GET /api/job/search")
     class SearchTests {
@@ -108,9 +108,7 @@ class JobControllerTest {
         }
     }
 
-    // =========================================================================
-    // 2. DÉTAIL D'UN JOB (GET /api/job/{jobId})
-    // =========================================================================
+
     @Nested
     @DisplayName("GET /api/job/{jobId}")
     class GetDetailTests {
@@ -151,9 +149,7 @@ class JobControllerTest {
         }
     }
 
-    // =========================================================================
-    // 3. SAUVEGARDE DE JOBS (POST /api/job/saved)
-    // =========================================================================
+
     @Nested
     @DisplayName("POST /api/job/saved")
     class SaveJobTests {
@@ -241,13 +237,11 @@ class JobControllerTest {
                             .header("Authorization", "Bearer test-token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(buildSaveRequest())))
-                            .andExpect(status().isServiceUnavailable());
+                    .andExpect(status().isServiceUnavailable());
         }
     }
 
-    // =========================================================================
-    // 4. LISTE DES JOBS SAUVEGARDÉS (GET /api/job/saved)
-    // =========================================================================
+
     @Nested
     @DisplayName("GET /api/job/saved")
     class GetSavedTests {
@@ -288,9 +282,7 @@ class JobControllerTest {
         }
     }
 
-    // =========================================================================
-    // 5. SUPPRESSION DE JOBS (DELETE /api/job/saved/{jobExternalId})
-    // =========================================================================
+
     @Nested
     @DisplayName("DELETE /api/job/saved/{jobExternalId}")
     class RemoveSavedTests {
@@ -322,9 +314,6 @@ class JobControllerTest {
         }
     }
 
-    // =========================================================================
-    // 6. PURGE DU CACHE (DELETE /api/job/admin/cache)
-    // =========================================================================
     @Nested
     @DisplayName("DELETE /api/job/admin/cache")
     class AdminCacheTests {
@@ -364,9 +353,6 @@ class JobControllerTest {
         }
     }
 
-    // =========================================================================
-    // MÉTHODES UTILITAIRES / HELPERS
-    // =========================================================================
 
     private JobSearchResult buildSearchResult(String id, String title) {
 
