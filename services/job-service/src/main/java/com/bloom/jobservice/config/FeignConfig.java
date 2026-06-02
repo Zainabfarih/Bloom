@@ -1,13 +1,15 @@
 package com.bloom.jobservice.config;
 
+import com.bloom.jobservice.exception.JobsApiException;
 import feign.Logger;
 import feign.codec.ErrorDecoder;
-import com.bloom.jobservice.exception.JobsApiException;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
+@EnableFeignClients(basePackages = "com.bloom.jobservice.external")
 public class FeignConfig {
 
     @Bean
