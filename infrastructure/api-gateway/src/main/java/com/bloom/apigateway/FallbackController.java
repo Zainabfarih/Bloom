@@ -2,7 +2,6 @@ package com.bloom.apigateway;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,7 +12,7 @@ import java.util.Map;
 @RequestMapping("/fallback")
 public class FallbackController {
 
-    @GetMapping("/job")
+    @RequestMapping("/job")
     public ResponseEntity<Map<String, String>> jobFallback() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Map.of(
@@ -23,7 +22,7 @@ public class FallbackController {
                 ));
     }
 
-    @GetMapping("/auth")
+    @RequestMapping("/auth")
     public ResponseEntity<Map<String, String>> authFallback() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Map.of(
@@ -33,7 +32,7 @@ public class FallbackController {
                 ));
     }
 
-    @GetMapping("/cv")
+    @RequestMapping("/cv")
     public ResponseEntity<Map<String, String>> cvFallback() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Map.of(
