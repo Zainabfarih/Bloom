@@ -1,0 +1,91 @@
+name: Bloom CI — job-service
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'services/job-service/**'
+      - '.github/workflows/job-service.yml'   
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-job-service-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MVN: "mvn -B --no-transfer-progress"
+
+jobs:
+
+  level1-compile:
+    name: "[job-service] Niveau 1 — Compilation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Compile
+        run: $MVN clean compile
+        working-directory: services/job-service
+
+  level2-tests:
+    name: "[job-service] Niveau 2 — Tests"
+    needs: level1-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Tests
+        run: $MVN test
+        working-directory: services/job-service
+        env:
+          SPRING_CLOUD_CONFIG_FAIL_FAST: 'false'
+          SPRING_CLOUD_CONFIG_ENABLED: 'false'
+          SPRING_CLOUD_CONFIG_IMPORT_CHECK_ENABLED: 'false'
+
+      - name: Upload surefire reports (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-job-service
+          path: services/job-service/target/surefire-reports/
+
+      - name: Upload coverage (JaCoCo)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-job-service
+          path: services/job-service/target/site/jacoco/
+          if-no-files-found: warn
+
+  level3-build:
+    name: "[job-service] Niveau 3 — Build final"
+    needs: level2-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Vérification version SNAPSHOT
+        run: |
+          VERSION=$($MVN help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ "$VERSION" != *-SNAPSHOT ]]; then
+            echo "La version '$VERSION' doit être un SNAPSHOT sur une PR"
+            exit 1
+          fi
+        working-directory: services/job-service
+      - name: Build final
+        run: $MVN verify -DskipTests
+        working-directory: services/job-service

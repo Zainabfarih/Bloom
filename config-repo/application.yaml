@@ -27,13 +27,18 @@ spring:
       minimum-idle: 2
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: false
   boot:
     admin:
       client:
-        url: ${ADMIN_SERVER_URL:http://localhost:9090}
+        url: ${ADMIN_SERVER_URL:http://localhost:8090}
+        username: admin
+        password: admin
 
 logging:
   pattern:
     console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    com.bloom: DEBUG
+    feign: DEBUG
