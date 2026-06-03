@@ -19,7 +19,7 @@ spring:
               filters:
                 - name: CircuitBreaker
                   args:
-                    name: job-service-cb
+                    id: job-service-cb
                     fallbackUri: forward:/fallback/job
 
             # ── CV Service ─────────────────────────────────────────────
@@ -30,7 +30,7 @@ spring:
               filters:
                 - name: CircuitBreaker
                   args:
-                    name: cv-service-cb
+                    id: cv-service-cb
                     fallbackUri: forward:/fallback/cv
 
             # ── Auth Service ─────────────────────────────────────────────
