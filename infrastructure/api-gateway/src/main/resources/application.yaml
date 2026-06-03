@@ -3,41 +3,43 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
-      routes:
+      server:
+        webmvc:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          routes:
 
-        # ── Job Service ────────────────────────────────────────────
-        - id: job-service
-          uri: lb://job-service
-          predicates:
-            - Path=/api/job/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: job-service-cb
-                fallbackUri: forward:/fallback/job
+            # ── Job Service ────────────────────────────────────────────
+            - id: job-service
+              uri: lb://job-service
+              predicates:
+                - Path=/api/job/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: job-service-cb
+                    fallbackUri: forward:/fallback/job
 
-        # ── CV Service ─────────────────────────────────────────────
-        - id: cv-service
-          uri: lb://cv-service
-          predicates:
-            - Path=/api/cv/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: cv-service-cb
-                fallbackUri: forward:/fallback/cv
-                
-        # ── Auth Service ───────────────────────────────────────────── 
-        - id: auth-service
-          uri: lb://auth-service
-          predicates:
-            - Path=/api/auth/**, /api/tokens/**, /api/users/**
-          filters:
-            - StripPrefix=0
+            # ── CV Service ─────────────────────────────────────────────
+            - id: cv-service
+              uri: lb://cv-service
+              predicates:
+                - Path=/api/cv/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: cv-service-cb
+                    fallbackUri: forward:/fallback/cv
+
+            # ── Auth Service ─────────────────────────────────────────────
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/auth/**, /api/tokens/**, /api/users/**
+              filters:
+                - StripPrefix=0
 
   boot:
     admin:
