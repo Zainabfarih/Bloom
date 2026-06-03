@@ -19,7 +19,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.util.HexFormat;
-import java.util.List;
 import java.util.Set;
 
 @Component
@@ -72,20 +71,20 @@ public class JwtGatewayFilter extends OncePerRequestFilter {
             String token = header.substring(7);
             Claims claims = parseClaims(token);
 
-            String userId = claims.getSubject();
-            List<?> roles = claims.get("roles", List.class);
-            String rolesStr = roles != null ? String.join(",", roles.stream()
-                    .map(Object::toString)
-                    .toList()) : "";
+            String userId = claims.get("userId", String.class);
+            String role = claims.get("role", String.class);
+            if (role == null) {
+                role = "";
+            }
 
             MutableHttpServletRequest mutableRequest = new MutableHttpServletRequest(request);
             mutableRequest.putHeader("X-User-Id", userId);
-            mutableRequest.putHeader("X-User-Roles", rolesStr);
+            mutableRequest.putHeader("X-User-Role", role);
 
             mutableRequest.putHeader("X-Gateway-Secret", internalSecret);
 
-            log.debug("JWT valid — userId={}, roles={}, path={}",
-                    userId, rolesStr, request.getRequestURI());
+            log.debug("JWT valid — userId={}, role={}, path={}",
+                    userId, role, request.getRequestURI());
 
             chain.doFilter(mutableRequest, response);
 

@@ -19,22 +19,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 
-/**
- * Authentifie la requête selon deux scénarios :
- *
- * <ol>
- *   <li><b>Appel via l'API Gateway</b> — la Gateway a déjà validé le JWT et injecte
- *       {@code X-User-Id}, {@code X-User-Roles} et le secret partagé
- *       {@code X-Gateway-Secret}. On fait confiance à ces headers.</li>
- *   <li><b>Appel direct service-à-service</b> (ex : job-service via Feign sur
- *       {@code lb://cv-service}) — la requête ne passe pas par la Gateway, on valide
- *       alors directement le token {@code Authorization: Bearer} transmis.</li>
- * </ol>
- */
+
 @Component
 @Slf4j
 public class GatewayAuthFilter extends OncePerRequestFilter {
@@ -56,7 +44,7 @@ public class GatewayAuthFilter extends OncePerRequestFilter {
 
         String gatewaySecretHeader = request.getHeader("X-Gateway-Secret");
         String userIdHeader        = request.getHeader("X-User-Id");
-        String rolesHeader         = request.getHeader("X-User-Roles");
+        String roleHeader          = request.getHeader("X-User-Role");
         String authorizationHeader = request.getHeader("Authorization");
 
         // ── Scénario 1 : requête arrivée via la Gateway ──────────────────────
@@ -71,8 +59,8 @@ public class GatewayAuthFilter extends OncePerRequestFilter {
             }
 
             try {
-                authenticate(Long.valueOf(userIdHeader), parseRoles(rolesHeader), request);
-                log.debug("Gateway auth validée — userId={}, roles={}", userIdHeader, rolesHeader);
+                authenticate(Long.valueOf(userIdHeader), parseRole(roleHeader), request);
+                log.debug("Gateway auth validée — userId={}, role={}", userIdHeader, roleHeader);
             } catch (NumberFormatException e) {
                 log.warn("Format de header X-User-Id invalide: {}", userIdHeader);
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid user identifier format.");
@@ -83,19 +71,16 @@ public class GatewayAuthFilter extends OncePerRequestFilter {
         } else if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             try {
                 Claims claims = parseClaims(authorizationHeader.substring(7));
-                Long userId = Long.valueOf(claims.getSubject());
 
-                List<?> roles = claims.get("roles", List.class);
-                String rolesStr = roles != null
-                        ? String.join(",", roles.stream().map(Object::toString).toList())
-                        : "";
+                Long userId = Long.valueOf(claims.get("userId", String.class));
 
-                authenticate(userId, parseRoles(rolesStr), request);
-                log.debug("JWT direct validé — userId={}, roles={}", userId, rolesStr);
+                String role = claims.get("role", String.class);
+
+                authenticate(userId, parseRole(role), request);
+                log.debug("JWT direct validé — userId={}, role={}", userId, role);
 
             } catch (Exception e) {
                 log.debug("JWT direct invalide pour {} : {}", request.getRequestURI(), e.getMessage());
-                // On laisse passer : Spring Security renverra 401 si le endpoint est protégé.
             }
         }
 
@@ -109,11 +94,9 @@ public class GatewayAuthFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
-    private List<SimpleGrantedAuthority> parseRoles(String rolesHeader) {
-        return (rolesHeader != null && !rolesHeader.isBlank())
-                ? Arrays.stream(rolesHeader.split(","))
-                        .map(r -> new SimpleGrantedAuthority("ROLE_" + r.trim()))
-                        .toList()
+    private List<SimpleGrantedAuthority> parseRole(String role) {
+        return (role != null && !role.isBlank())
+                ? List.of(new SimpleGrantedAuthority("ROLE_" + role.trim()))
                 : List.of();
     }
 
