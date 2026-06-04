@@ -57,8 +57,9 @@ public class CvAnalysisService {
             payload.put("contents", List.of(Map.of("parts", List.of(Map.of("text", buildPrompt(text))))));
             payload.put("generationConfig", Map.of(
                     "temperature",      0.2,
-                    "maxOutputTokens",  2048,
-                    "responseMimeType", "application/json"
+                    "maxOutputTokens",  4096,
+                    "responseMimeType", "application/json",
+                    "thinkingConfig",   Map.of("thinkingBudget", 0) // évite la troncature du JSON
             ));
 
             String url = GEMINI_BASE_URL + GEMINI_MODEL + ":generateContent?key="

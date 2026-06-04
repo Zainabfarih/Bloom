@@ -72,6 +72,32 @@ public class CvController {
         return ResponseEntity.ok(cvService.getMyCvs(userId));
     }
 
+    // ─── Téléchargement / consultation du fichier PDF ──────────────────────────
+
+    @GetMapping("/{cvUuid}/file")
+    @Operation(summary = "Télécharge / consulte le fichier PDF du CV")
+    public ResponseEntity<byte[]> downloadFile(
+            @PathVariable UUID cvUuid,
+            Authentication auth) {
+
+        Long userId = (Long) auth.getPrincipal();
+        com.bloom.cvservice.entity.Cv cv = cvService.getOwnedCv(userId, cvUuid);
+
+        if (cv.getFileData() == null || cv.getFileData().length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String filename = cv.getOriginalFilename() != null
+                ? cv.getOriginalFilename() : (cvUuid + ".pdf");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        cv.getContentType() != null ? cv.getContentType() : MediaType.APPLICATION_PDF_VALUE))
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + filename + "\"")
+                .body(cv.getFileData());
+    }
+
     // ─── Contrat consommé par job-service (Feign) ──────────────────────────────
 
     @GetMapping("/users/{userId}/skills")

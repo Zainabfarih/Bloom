@@ -86,7 +86,7 @@ class CvControllerTest {
                             .file(file)
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.source").value("UPLOAD"))
                     .andExpect(jsonPath("$.skills[0]").value("Java"));
@@ -117,7 +117,7 @@ class CvControllerTest {
                             .file(file)
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.code").value("CV_PROCESSING_ERROR"));
         }
@@ -142,13 +142,16 @@ class CvControllerTest {
             when(cvService.createManualCv(eq(1L), any())).thenReturn(response);
 
             ManualCvRequest request = new ManualCvRequest();
+            request.setTitle("Mon CV");
             request.setSummary("Étudiant en génie logiciel passionné par le backend.");
+            request.setExperiences(List.of("Stage backend 6 mois chez X"));
+            request.setEducations(List.of("Master Génie Logiciel - 2026"));
             request.setSkills(List.of("Python"));
 
             mockMvc.perform(post("/api/cv/manual")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT")
+                            .header("X-User-Role", "STUDENT")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
@@ -160,12 +163,14 @@ class CvControllerTest {
         void manual_returns_400_when_summary_missing() throws Exception {
 
             ManualCvRequest invalid = new ManualCvRequest();
+            invalid.setExperiences(List.of("Stage backend"));
+            invalid.setEducations(List.of("Master GL"));
             invalid.setSkills(List.of("Python"));
 
             mockMvc.perform(post("/api/cv/manual")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT")
+                            .header("X-User-Role", "STUDENT")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(invalid)))
                     .andExpect(status().isBadRequest());
@@ -192,7 +197,7 @@ class CvControllerTest {
             mockMvc.perform(get("/api/cv/users/1/skills")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.userId").value(1))
                     .andExpect(jsonPath("$.skills.length()").value(2));
@@ -208,7 +213,7 @@ class CvControllerTest {
             mockMvc.perform(get("/api/cv/users/99/skills")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "99")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("NOT_FOUND"));
         }
@@ -237,7 +242,7 @@ class CvControllerTest {
             mockMvc.perform(get("/api/cv/" + cvUuid + "/analysis")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.atsScore").value(82))
                     .andExpect(jsonPath("$.cvUuid").value(cvUuid.toString()));
@@ -259,7 +264,7 @@ class CvControllerTest {
             mockMvc.perform(delete("/api/cv/" + cvUuid)
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isNoContent());
         }
 
@@ -274,7 +279,7 @@ class CvControllerTest {
             mockMvc.perform(delete("/api/cv/" + cvUuid)
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isNotFound());
         }
     }

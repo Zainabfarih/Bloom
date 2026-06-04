@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS saved_job (
     -- UUID du CV utilisé pour le matching
                                          cv_uuid             UUID NOT NULL,
 
-                                         job_external_id     VARCHAR(255) NOT NULL,
+                                         job_external_id     VARCHAR(1024) NOT NULL,
                                          job_title           VARCHAR(500) NOT NULL,
                                          job_company         VARCHAR(255),
                                          job_location        VARCHAR(255),
