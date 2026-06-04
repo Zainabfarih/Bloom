@@ -48,4 +48,13 @@ public class RoadmapController {
         Long userId = (Long) auth.getPrincipal();
         return ResponseEntity.ok(roadmapService.updateStepStatus(userId, stepId, dto));
     }
+    @GetMapping("/{roadmapId}")
+    @Operation(summary = "Get one roadmap by ID")
+    public ResponseEntity<RoadmapResponse> getRoadmapById(
+            Authentication auth,
+            @PathVariable Long roadmapId) {
+
+        Long userId = (Long) auth.getPrincipal();
+        return ResponseEntity.ok(roadmapService.getRoadmapById(userId, roadmapId));
+    }
 }

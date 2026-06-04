@@ -3,41 +3,49 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
-      routes:
-        # ── Auth Service ─────────────────────────────────────────────
-        - id: auth-service
-          uri: lb://auth-service
-          predicates:
-            - Path=/api/auth/**, /api/tokens/**, /api/users/**
-          filters:
-            - StripPrefix=0
-        # ── Job Service ────────────────────────────────────────────
-        - id: job-service
-          uri: lb://job-service
-          predicates:
-            - Path=/api/job/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: job-service-cb
-                fallbackUri: forward:/fallback/job
+      server:
+        webmvc:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          routes:
 
-        # ── CV Service ─────────────────────────────────────────────
-        - id: cv-service
-          uri: lb://cv-service
-          predicates:
-            - Path=/api/cv/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: cv-service-cb
-                fallbackUri: forward:/fallback/cv
+            # ── Job Service ────────────────────────────────────────────
+            - id: job-service
+              uri: lb://job-service
+              predicates:
+                - Path=/api/job/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    id: job-service-cb
+                    fallbackUri: forward:/fallback/job
 
+            # ── CV Service ─────────────────────────────────────────────
+            - id: cv-service
+              uri: lb://cv-service
+              predicates:
+                - Path=/api/cv/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    id: cv-service-cb
+                    fallbackUri: forward:/fallback/cv
 
+            # ── Auth Service ─────────────────────────────────────────────
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/auth/**, /api/tokens/**, /api/users/**
+              filters:
+                - StripPrefix=0
+
+            # ── Roadmap Service ─────────────────────────────────────────────
+            - id: roadmap-service
+              uri: lb://roadmap-service
+              predicates:
+                - Path=/api/roadmap/**
   boot:
     admin:
       client:
@@ -56,7 +64,7 @@ eureka:
     prefer-ip-address: true
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
 
 management:
   endpoints:
@@ -71,7 +79,7 @@ management:
 
 internal:
   security:
-    gateway-secret: ${INTERNAL_GATEWAY_SECRET}
+    gateway-secret: ${INTERNAL_GATEWAY_SECRET:2RD15mg+lZB1frvOkiaUN9Ycp98o5VMHKHFsfuL4U6U=}
 
 
 resilience4j:

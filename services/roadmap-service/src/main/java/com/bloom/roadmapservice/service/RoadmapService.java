@@ -103,6 +103,14 @@ public class RoadmapService {
                 .orElseThrow(() -> new RoadmapNotFoundException(userId, roadmap.getTargetJobId()));
     }
 
+    @Transactional(readOnly = true)
+    public RoadmapResponse getRoadmapById(Long userId, Long roadmapId) {
+        return roadmapRepo.findByIdWithSteps(roadmapId)
+                .filter(r -> r.getUserId().equals(userId))
+                .map(roadmapMapper::toResponse)
+                .orElseThrow(() -> new RoadmapNotFoundException(userId, roadmapId));
+    }
+
     private void recalculateProgress(Roadmap roadmap) {
         List<RoadmapStep> steps = roadmap.getSteps();
         if (steps.isEmpty()) {

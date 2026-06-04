@@ -2,10 +2,9 @@ spring:
   application:
     name: roadmap-service
   config:
-    import:
-      - "configserver:http://localhost:8888"
+    import: "configserver:http://localhost:8888"
   profiles:
-    active: ${CONFIG_SERVER_PROFILE}
+    active: ${CONFIG_SERVER_PROFILE:git}
   cloud:
     config:
       fail-fast: true

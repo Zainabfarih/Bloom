@@ -19,17 +19,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_batch_fetch_size: 20   # charge Set<Resource> en une seule IN query (évite N+1)
 
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    validate-on-migrate: true
-    out-of-order: false
-    url: ${spring.datasource.url}
-    user: ${spring.datasource.username}
-    password: ${spring.datasource.password}
-    baseline-on-migrate: true
-    clean-disabled: false
-
 internal:
   security:
     gateway-secret: ${INTERNAL_GATEWAY_SECRET}   # même secret que les autres services
