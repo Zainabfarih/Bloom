@@ -1,0 +1,52 @@
+spring:
+  datasource:
+    url: ${DB_ROADMAP_URL}
+    username: ${DB_ROADMAP_USERNAME}
+    password: ${DB_ROADMAP_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_batch_fetch_size: 20   # charge Set<Resource> en une seule IN query (évite N+1)
+
+internal:
+  security:
+    gateway-secret: ${INTERNAL_GATEWAY_SECRET}   # même secret que les autres services
+
+ai:
+  gemini:
+    api-key: ${GEMINI_API_KEY_ROADMAP}
+    model: ${GEMINI_MODEL_ROADMAP}   # ex: "gemini-2.0-flash"
+    max-output-tokens: 4096
+    timeout-seconds: 60
+
+spring.cloud.openfeign.circuitbreaker.enabled: true
+
+feign:
+  client:
+    config:
+      default:
+        loggerLevel: NONE
+
+jwt:
+  secret: ${JWT_SECRET}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    org.flywaydb: DEBUG

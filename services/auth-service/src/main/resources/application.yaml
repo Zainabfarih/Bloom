@@ -8,12 +8,12 @@ spring:
     import: optional:file:.env[.properties]
   datasource:
     url: jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require
-    username: ${DB_USER}
-    password: ${DB_PASS}
+    username: ${DB_AUTH_USER}
+    password: ${DB_AUTH_PASS}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true #why not use this in production?
     properties:
       hibernate:

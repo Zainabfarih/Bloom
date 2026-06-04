@@ -13,7 +13,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.crypto.SecretKey;
 import java.util.HexFormat;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -43,7 +42,7 @@ class GatewayAuthFilterTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("X-Gateway-Secret", GATEWAY_SECRET);
         request.addHeader("X-User-Id", "42");
-        request.addHeader("X-User-Roles", "STUDENT");
+        request.addHeader("X-User-Role", "STUDENT");
 
         filter.doFilterInternal(request, new MockHttpServletResponse(), new MockFilterChain());
 
@@ -73,8 +72,9 @@ class GatewayAuthFilterTest {
     @DisplayName("Bearer JWT valide (appel direct Feign) → Authentication créée")
     void creates_auth_from_direct_bearer_token() throws Exception {
         String token = Jwts.builder()
-                .subject("7")
-                .claim("roles", List.of("STUDENT"))
+                .subject("student@example.com")
+                .claim("userId", "7")
+                .claim("role", "STUDENT")
                 .signWith(jwtKey)
                 .compact();
 

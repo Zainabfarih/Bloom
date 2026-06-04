@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/job/saved/**").authenticated()
                         .requestMatchers("/api/job/admin/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/job/*").permitAll()
+                        .requestMatchers("/api/job/skill-gap").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(

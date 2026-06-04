@@ -214,7 +214,7 @@ class JobControllerTest {
             mockMvc.perform(post("/api/job/saved/ext-123")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT")
+                            .header("X-User-Role", "STUDENT")
                             .header("Authorization", "Bearer test-token")
                             .param("cvUuid", cvUuid.toString()))
                     .andExpect(status().isCreated())
@@ -273,7 +273,7 @@ class JobControllerTest {
             mockMvc.perform(get("/api/job/saved")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(2));
         }
@@ -301,7 +301,7 @@ class JobControllerTest {
             mockMvc.perform(delete("/api/job/saved/ext-123")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isNoContent());
         }
 
@@ -316,7 +316,7 @@ class JobControllerTest {
             mockMvc.perform(delete("/api/job/saved/ext-not-exist")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT"))
+                            .header("X-User-Role", "STUDENT"))
                     .andExpect(status().isNotFound());
         }
     }
@@ -334,7 +334,7 @@ class JobControllerTest {
             mockMvc.perform(delete("/api/job/admin/cache")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "99")
-                            .header("X-User-Roles", "ADMIN")
+                            .header("X-User-Role", "ADMIN")
                             .param("query", "java")
                             .param("location", "Morocco"))
                     .andExpect(status().isNoContent());
@@ -347,7 +347,7 @@ class JobControllerTest {
             mockMvc.perform(delete("/api/job/admin/cache")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT")
+                            .header("X-User-Role", "STUDENT")
                             .param("query", "java"))
                     .andExpect(status().isForbidden());
         }

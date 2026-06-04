@@ -2,6 +2,7 @@ package com.bloom.jobservice.service;
 
 import com.bloom.jobservice.dto.JobDetailResponse;
 import com.bloom.jobservice.dto.SavedJobResponse;
+import com.bloom.jobservice.dto.SkillGapResponse;
 import com.bloom.jobservice.dto.SkillsDTO;
 import com.bloom.jobservice.entity.SavedJob;
 import com.bloom.jobservice.entity.SkillType;
@@ -98,6 +99,40 @@ public class SavedJobService {
         if (deleted == 0) {
             throw new ResourceNotFoundException("Saved job not found for user " + userId);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public SkillGapResponse getSkillGap(Long userId, Long targetJobId) {
+        // targetJobId dans BLOOM est le Long id de SavedJob (pas jobExternalId)
+        return savedJobRepository.findById(targetJobId)
+                .filter(j -> j.getUserId().equals(userId))
+                .map(j -> new SkillGapResponse(
+                        userId,
+                        targetJobId,
+                        j.getJobTitle(),
+                        j.getSkillsByType(SkillType.MISSING)
+                ))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "SavedJob not found: id=" + targetJobId + " for userId=" + userId));
+    }
+
+    private SavedJobResponse persistNewSavedJob(Long userId, SaveJobRequest request, String bearerToken) {
+        SkillsDTO cvData = fetchCvSkillsOrThrow(userId, request.getCvUuid(), bearerToken);
+
+        List<String> cvSkills = cvData.getSkills() != null ? cvData.getSkills() : List.of();
+        List<String> required = request.getRequiredSkills() != null ? request.getRequiredSkills() : List.of();
+
+        request.setCvUuid(cvData.getCvUuid());
+        request.setMatchedSkills(skillMatchingService.findMatched(required, cvSkills));
+        request.setMissingSkills(skillMatchingService.findMissing(required, cvSkills));
+        request.setCompatibilityScore(skillMatchingService.computeScore(required, cvSkills));
+
+        SavedJob saved = savedJobRepository.save(savedJobMapper.toEntity(request, userId));
+
+        log.info("Job saved — userId={} jobId={} cvUuid={} score={}%",
+                userId, request.getJobExternalId(), request.getCvUuid(), request.getCompatibilityScore());
+
+        return savedJobMapper.toResponse(saved);
     }
 
     private SkillsDTO fetchCvSkillsOrThrow(Long userId, UUID cvUuid, String bearerToken) {
