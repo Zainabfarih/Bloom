@@ -1,9 +1,6 @@
 package com.bloom.jobservice.controller;
 
-import com.bloom.jobservice.dto.JobDetailResponse;
-import com.bloom.jobservice.dto.JobSearchResponse;
-import com.bloom.jobservice.dto.SaveJobRequest;
-import com.bloom.jobservice.dto.SavedJobResponse;
+import com.bloom.jobservice.dto.*;
 import com.bloom.jobservice.service.JobService;
 import com.bloom.jobservice.service.SavedJobService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,6 +44,16 @@ public class JobController {
             @PathVariable String jobId) {
 
         return ResponseEntity.ok(jobService.getJobDetail(jobId));
+    }
+
+    // ─── Skill gap details ──────────────────────────────────────────────────────────────
+    @GetMapping("/skill-gap")
+    @Operation(summary = "Internal — consumed by roadmap-service via Feign")
+    public ResponseEntity<SkillGapResponse> getSkillGap(
+            @RequestParam Long userId,
+            @RequestParam Long targetJobId) {
+
+        return ResponseEntity.ok(savedJobService.getSkillGap(userId, targetJobId));
     }
 
     // ─── Favourites ──────────────────────────────────────────────────────────

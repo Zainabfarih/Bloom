@@ -6,7 +6,7 @@ spring:
     name: config-server
 
   profiles:
-    active: ${CONFIG_SERVER_PROFILE}
+    active: ${CONFIG_SERVER_PROFILE:git}
 
   cloud:
     config:

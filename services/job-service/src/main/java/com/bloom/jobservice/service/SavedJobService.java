@@ -2,8 +2,10 @@ package com.bloom.jobservice.service;
 
 import com.bloom.jobservice.dto.SaveJobRequest;
 import com.bloom.jobservice.dto.SavedJobResponse;
+import com.bloom.jobservice.dto.SkillGapResponse;
 import com.bloom.jobservice.dto.SkillsDTO;
 import com.bloom.jobservice.entity.SavedJob;
+import com.bloom.jobservice.entity.SkillType;
 import com.bloom.jobservice.exception.JobsApiException;
 import com.bloom.jobservice.exception.ResourceNotFoundException;
 import com.bloom.jobservice.external.CvServiceClient;
@@ -58,6 +60,21 @@ public class SavedJobService {
         if (deleted == 0) {
             throw new ResourceNotFoundException("Saved job not found for user " + userId);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public SkillGapResponse getSkillGap(Long userId, Long targetJobId) {
+        // targetJobId dans BLOOM est le Long id de SavedJob (pas jobExternalId)
+        return savedJobRepository.findById(targetJobId)
+                .filter(j -> j.getUserId().equals(userId))
+                .map(j -> new SkillGapResponse(
+                        userId,
+                        targetJobId,
+                        j.getJobTitle(),
+                        j.getSkillsByType(SkillType.MISSING)
+                ))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "SavedJob not found: id=" + targetJobId + " for userId=" + userId));
     }
 
     private SavedJobResponse persistNewSavedJob(Long userId, SaveJobRequest request, String bearerToken) {
