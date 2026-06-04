@@ -114,6 +114,15 @@ public class JobService {
         return toDetailResponse(job, skills, false);
     }
 
+    /**
+     * Récupère un job du cache + ses skills requis (extraits, mis en cache),
+     * pour la sauvegarde de favori. Lève ResourceNotFoundException si le job
+     * n'a pas été vu lors d'un /search préalable.
+     */
+    public JobDetailResponse getJobForSave(String jobId) {
+        return getJobDetail(jobId);
+    }
+
     public void evictCache(String query, String location) {
         String searchKey = buildSearchKey(query, location);
         List<JobResult> jobs = safeGetJobList(searchKey);

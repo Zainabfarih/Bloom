@@ -28,14 +28,24 @@ public class CvService {
     private final PdfTextExtractor  pdfTextExtractor;
     private final CvSkillExtractor  cvSkillExtractor;
     private final CvAnalysisService cvAnalysisService;
+    private final CvPdfGenerator    cvPdfGenerator;
     private final CvMapper          cvMapper;
 
     // ─── Upload PDF ──────────────────────────────────────────────────────────
 
     @Transactional
     public CvResponse uploadCv(Long userId, MultipartFile file, String title) {
-        String rawText = pdfTextExtractor.extract(file);
-        List<String> skills = cvSkillExtractor.extract(rawText);
+        // Texte extrait pour en déduire les skills uniquement — non persisté.
+        String text = pdfTextExtractor.extract(file);
+        List<String> skills = cvSkillExtractor.extract(text);
+
+        byte[] fileData;
+        try {
+            fileData = file.getBytes();
+        } catch (java.io.IOException e) {
+            throw new com.bloom.cvservice.exception.CvProcessingException(
+                    "Impossible de lire le fichier uploadé.", e);
+        }
 
         deactivateExistingCvs(userId);
 
@@ -44,13 +54,16 @@ public class CvService {
                 .title(title != null && !title.isBlank() ? title.trim() : file.getOriginalFilename())
                 .source(CvSource.UPLOAD)
                 .originalFilename(file.getOriginalFilename())
-                .rawText(rawText)
+                .contentType("application/pdf")
+                .fileData(fileData)
+                .fileSize((long) fileData.length)
                 .active(true)
                 .build();
         cv.replaceSkills(skills);
 
         Cv saved = cvRepository.save(cv);
-        log.info("CV uploadé — userId={} cvUuid={} skills={}", userId, saved.getUuid(), skills.size());
+        log.info("CV uploadé — userId={} cvUuid={} skills={} taille={}o",
+                userId, saved.getUuid(), skills.size(), fileData.length);
         return cvMapper.toResponse(saved);
     }
 
@@ -58,21 +71,24 @@ public class CvService {
 
     @Transactional
     public CvResponse createManualCv(Long userId, ManualCvRequest request) {
-        String rawText = assembleRawText(request);
-
-        // Skills fournis manuellement, sinon extraits du texte assemblé par l'IA.
-        List<String> skills = (request.getSkills() != null && !request.getSkills().isEmpty())
-                ? request.getSkills()
-                : cvSkillExtractor.extract(rawText);
+        String description = assembleDescription(request);
+        List<String> skills = request.getSkills();
+        byte[] fileData = cvPdfGenerator.generate(request); // PDF ATS généré depuis les sections
 
         deactivateExistingCvs(userId);
 
+        String title = request.getTitle() != null && !request.getTitle().isBlank()
+                ? request.getTitle().trim() : "CV (saisie manuelle)";
+
         Cv cv = Cv.builder()
                 .userId(userId)
-                .title(request.getTitle() != null && !request.getTitle().isBlank()
-                        ? request.getTitle().trim() : "CV (saisie manuelle)")
+                .title(title)
                 .source(CvSource.MANUAL)
-                .rawText(rawText)
+                .originalFilename(slugify(title) + ".pdf")
+                .contentType("application/pdf")
+                .fileData(fileData)
+                .fileSize((long) fileData.length)
+                .description(description)
                 .active(true)
                 .build();
         cv.replaceSkills(skills);
@@ -110,15 +126,36 @@ public class CvService {
         return cvMapper.toSkillsDTO(cv);
     }
 
+    // ─── Téléchargement / consultation du fichier ───────────────────────────────
+
+    /** Retourne le CV (entité) appartenant à l'utilisateur, pour servir son fichier. */
+    @Transactional(readOnly = true)
+    public Cv getOwnedCv(Long userId, UUID cvUuid) {
+        return cvRepository.findByUuid(cvUuid)
+                .filter(c -> c.getUserId().equals(userId))
+                .orElseThrow(() -> new ResourceNotFoundException("CV introuvable: " + cvUuid));
+    }
+
     // ─── Analyse ATS (à la volée, non persistée) ────────────────────────────────
 
     @Transactional(readOnly = true)
     public CvAnalysisResponse analyzeCv(Long userId, UUID cvUuid) {
-        Cv cv = cvRepository.findByUuid(cvUuid)
+        Cv cv = cvRepository.findByUuidWithSkills(cvUuid)
                 .filter(c -> c.getUserId().equals(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("CV introuvable: " + cvUuid));
 
-        CvAnalysisResponse analysis = cvAnalysisService.analyze(cv.getRawText());
+        // CV manuel : description ; CV uploadé : texte ré-extrait du PDF stocké.
+        String text = (cv.getDescription() != null && !cv.getDescription().isBlank())
+                ? cv.getDescription()
+                : pdfTextExtractor.extract(cv.getFileData());
+
+        String analysisInput = text;
+        List<String> skills = cv.getSkillNames();
+        if (!skills.isEmpty()) {
+            analysisInput += "\n\nSKILLS\n" + String.join(", ", skills);
+        }
+
+        CvAnalysisResponse analysis = cvAnalysisService.analyze(analysisInput);
         analysis.setCvUuid(cv.getUuid());
         return analysis;
     }
@@ -130,8 +167,24 @@ public class CvService {
         Cv cv = cvRepository.findByUuid(cvUuid)
                 .filter(c -> c.getUserId().equals(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("CV introuvable: " + cvUuid));
+
+        boolean wasActive = cv.isActive();
         cvRepository.delete(cv);
-        log.info("CV supprimé — userId={} cvUuid={}", userId, cvUuid);
+        cvRepository.flush(); // libère l'index uq_cv_user_active avant de réactiver un autre CV
+
+        // CV actif supprimé → le plus récent restant (tri updatedAt DESC) redevient actif.
+        if (wasActive) {
+            cvRepository.findByUserId(userId).stream()
+                    .filter(c -> !c.getUuid().equals(cvUuid))
+                    .findFirst()
+                    .ifPresent(mostRecent -> {
+                        mostRecent.setActive(true);
+                        cvRepository.save(mostRecent);
+                        log.info("CV actif promu — userId={} nouveauCvActif={}", userId, mostRecent.getUuid());
+                    });
+        }
+
+        log.info("CV supprimé — userId={} cvUuid={} (étaitActif={})", userId, cvUuid, wasActive);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -146,11 +199,13 @@ public class CvService {
     private void deactivateExistingCvs(Long userId) {
         cvRepository.findByUserIdAndActiveTrue(userId).ifPresent(existing -> {
             existing.setActive(false);
-            cvRepository.save(existing);
+            // Flush avant l'INSERT du nouveau CV actif, sinon l'index partiel
+            // unique uq_cv_user_active est violé.
+            cvRepository.saveAndFlush(existing);
         });
     }
 
-    private String assembleRawText(ManualCvRequest req) {
+    private String assembleDescription(ManualCvRequest req) {
         StringBuilder sb = new StringBuilder();
 
         if (req.getSummary() != null && !req.getSummary().isBlank()) {
@@ -177,5 +232,12 @@ public class CvService {
         }
 
         return sb.toString().trim();
+    }
+
+    private String slugify(String input) {
+        String slug = input.toLowerCase()
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
+        return slug.isBlank() ? "cv" : slug;
     }
 }

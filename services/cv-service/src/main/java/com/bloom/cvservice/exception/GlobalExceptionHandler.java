@@ -10,6 +10,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -75,6 +76,17 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(
                         "BAD_REQUEST",
                         "Required parameter '" + ex.getParameterName() + "' is missing.",
+                        Instant.now()));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingPart(
+            MissingServletRequestPartException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(
+                        "BAD_REQUEST",
+                        "Required file part '" + ex.getRequestPartName()
+                                + "' is missing. Send the CV as multipart/form-data with a 'file' part.",
                         Instant.now()));
     }
 

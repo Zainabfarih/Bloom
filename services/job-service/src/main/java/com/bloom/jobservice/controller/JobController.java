@@ -2,13 +2,11 @@ package com.bloom.jobservice.controller;
 
 import com.bloom.jobservice.dto.JobDetailResponse;
 import com.bloom.jobservice.dto.JobSearchResponse;
-import com.bloom.jobservice.dto.SaveJobRequest;
 import com.bloom.jobservice.dto.SavedJobResponse;
 import com.bloom.jobservice.service.JobService;
 import com.bloom.jobservice.service.SavedJobService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,17 +49,19 @@ public class JobController {
 
     // ─── Favourites ──────────────────────────────────────────────────────────
 
-    @PostMapping("/saved")
-    @Operation(summary = "Save a job — skill matching vs CV, score calculé server-side")
+    @PostMapping("/saved/{jobId}")
+    @Operation(summary = "Save a job by its jobId (déjà présent en cache via /search) — "
+            + "skill matching vs CV actif (ou cvUuid fourni), score calculé server-side")
     public ResponseEntity<SavedJobResponse> save(
-            @Valid @RequestBody SaveJobRequest request,
+            @PathVariable String jobId,
+            @RequestParam(required = false) UUID cvUuid,
             Authentication auth,
             @RequestHeader("Authorization") String bearerToken) {
 
         Long userId = (Long) auth.getPrincipal();
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(savedJobService.saveJob(userId, request, bearerToken));
+                .body(savedJobService.saveJob(userId, jobId, cvUuid, bearerToken));
     }
 
     @GetMapping("/saved")

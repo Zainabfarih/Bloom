@@ -42,17 +42,26 @@ public class Cv {
     @Column(name = "source", nullable = false, length = 20)
     private CvSource source;
 
-    /** Nom du fichier PDF importé (null si saisie manuelle). */
+    /** Nom du fichier PDF (importé, ou nom généré pour un CV manuel). */
     @Column(name = "original_filename", length = 255)
     private String originalFilename;
 
-    /**
-     * Texte brut du CV : extrait du PDF à l'upload,
-     * ou assemblé depuis les sections saisies manuellement.
-     * Sert de base à l'extraction de skills et à l'analyse ATS (à la volée).
-     */
-    @Column(name = "raw_text", columnDefinition = "TEXT")
-    private String rawText;
+    /** Type MIME du fichier stocké (toujours application/pdf ici). */
+    @Column(name = "content_type", nullable = false, length = 100)
+    @Builder.Default
+    private String contentType = "application/pdf";
+
+    /** Le fichier PDF stocké (uploadé ou généré). */
+    @Column(name = "file_data")
+    private byte[] fileData;
+
+    /** Taille du fichier en octets. */
+    @Column(name = "file_size")
+    private Long fileSize;
+
+    /** Sections assemblées (CV manuel) pour l'analyse ATS ; null pour un upload. */
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
     /** Un seul CV actif par étudiant — celui utilisé pour le matching emploi. */
     @Column(name = "active", nullable = false)

@@ -1,6 +1,6 @@
 package com.bloom.jobservice.service;
 
-import com.bloom.jobservice.dto.SaveJobRequest;
+import com.bloom.jobservice.dto.JobDetailResponse;
 import com.bloom.jobservice.dto.SavedJobResponse;
 import com.bloom.jobservice.dto.SkillsDTO;
 import com.bloom.jobservice.entity.SavedJob;
@@ -34,6 +34,7 @@ class SavedJobServiceTest {
     @Mock private SavedJobRepository   savedJobRepository;
     @Mock private SkillMatchingService skillMatchingService;
     @Mock private CvServiceClient      cvServiceClient;
+    @Mock private JobService           jobService;
     @Mock private SavedJobMapper       savedJobMapper;
 
     @InjectMocks
@@ -44,15 +45,17 @@ class SavedJobServiceTest {
     private static final String JOB_EXT_ID = "ext-123";
     private static final UUID   CV_UUID    = UUID.randomUUID();
 
-    private SaveJobRequest baseRequest;
+    private JobDetailResponse jobDetail;
 
     @BeforeEach
     void setUp() {
-        baseRequest = new SaveJobRequest();
-        baseRequest.setJobExternalId(JOB_EXT_ID);
-        baseRequest.setJobTitle("Java Developer");
-        baseRequest.setJobCompany("TechCorp");
-        baseRequest.setRequiredSkills(List.of("Java", "Docker", "PostgreSQL"));
+        jobDetail = JobDetailResponse.builder()
+                .jobId(JOB_EXT_ID)
+                .title("Java Developer")
+                .companyName("TechCorp")
+                .location("Casablanca")
+                .extractedSkills(List.of("Java", "Docker", "PostgreSQL"))
+                .build();
     }
 
 
@@ -69,15 +72,15 @@ class SavedJobServiceTest {
 
             when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
                     .thenReturn(Optional.empty());
+            when(jobService.getJobForSave(JOB_EXT_ID)).thenReturn(jobDetail);
             when(cvServiceClient.getUserSkills(USER_ID, BEARER)).thenReturn(cvData);
             when(skillMatchingService.findMatched(any(), any())).thenReturn(List.of("Java"));
             when(skillMatchingService.findMissing(any(), any())).thenReturn(List.of("Docker", "PostgreSQL"));
             when(skillMatchingService.computeScore(any(), any())).thenReturn(50);
             when(savedJobRepository.save(any())).thenReturn(entity);
-            when(savedJobMapper.toEntity(any(), eq(USER_ID))).thenReturn(entity);
             when(savedJobMapper.toResponse(entity)).thenReturn(response);
 
-            SavedJobResponse result = savedJobService.saveJob(USER_ID, baseRequest, BEARER);
+            SavedJobResponse result = savedJobService.saveJob(USER_ID, JOB_EXT_ID, null, BEARER);
 
             assertThat(result).isNotNull();
             assertThat(result.getCompatibilityScore()).isEqualTo(50);
@@ -97,11 +100,12 @@ class SavedJobServiceTest {
                     .thenReturn(Optional.of(existing));
             when(savedJobMapper.toResponse(existing)).thenReturn(response);
 
-            SavedJobResponse result = savedJobService.saveJob(USER_ID, baseRequest, BEARER);
+            SavedJobResponse result = savedJobService.saveJob(USER_ID, JOB_EXT_ID, null, BEARER);
 
             assertThat(result.getJobExternalId()).isEqualTo(JOB_EXT_ID);
             assertThat(result.getCompatibilityScore()).isEqualTo(75);
             verify(savedJobRepository, never()).save(any());
+            verify(jobService, never()).getJobForSave(anyString());
             verify(cvServiceClient, never()).getUserSkills(anyLong(), anyString());
             verify(cvServiceClient, never()).getCvSkills(any(), anyString());
         }
@@ -109,22 +113,21 @@ class SavedJobServiceTest {
         @Test
         @DisplayName("cvUuid fourni → appelle getCvSkills (cv spécifique), pas getUserSkills")
         void save_job_with_specific_cv_uuid_calls_getCvSkills() {
-            baseRequest.setCvUuid(CV_UUID);
             SkillsDTO cvData = buildCvSkills(CV_UUID, List.of("Java", "Spring Boot"));
             SavedJob  entity = buildSavedJob(33);
             SavedJobResponse response = buildResponse(entity);
 
             when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
                     .thenReturn(Optional.empty());
+            when(jobService.getJobForSave(JOB_EXT_ID)).thenReturn(jobDetail);
             when(cvServiceClient.getCvSkills(CV_UUID, BEARER)).thenReturn(cvData);
             when(skillMatchingService.findMatched(any(), any())).thenReturn(List.of("Java", "Spring Boot"));
             when(skillMatchingService.findMissing(any(), any())).thenReturn(List.of("Docker"));
             when(skillMatchingService.computeScore(any(), any())).thenReturn(33);
             when(savedJobRepository.save(any())).thenReturn(entity);
-            when(savedJobMapper.toEntity(any(), eq(USER_ID))).thenReturn(entity);
             when(savedJobMapper.toResponse(entity)).thenReturn(response);
 
-            savedJobService.saveJob(USER_ID, baseRequest, BEARER);
+            savedJobService.saveJob(USER_ID, JOB_EXT_ID, CV_UUID, BEARER);
 
             verify(cvServiceClient).getCvSkills(CV_UUID, BEARER);
             verify(cvServiceClient, never()).getUserSkills(anyLong(), anyString());
@@ -135,10 +138,11 @@ class SavedJobServiceTest {
         void save_job_throws_JobsApiException_when_cv_service_is_down() {
             when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
                     .thenReturn(Optional.empty());
+            when(jobService.getJobForSave(JOB_EXT_ID)).thenReturn(jobDetail);
             when(cvServiceClient.getUserSkills(USER_ID, BEARER))
                     .thenThrow(new RuntimeException("Connection refused"));
 
-            assertThatThrownBy(() -> savedJobService.saveJob(USER_ID, baseRequest, BEARER))
+            assertThatThrownBy(() -> savedJobService.saveJob(USER_ID, JOB_EXT_ID, null, BEARER))
                     .isInstanceOf(JobsApiException.class)
                     .hasMessageContaining("cv-service indisponible");
 
@@ -146,17 +150,15 @@ class SavedJobServiceTest {
         }
 
         @Test
-        @DisplayName("cv-service KO via cvUuid → lève aussi JobsApiException")
-        void save_job_with_cv_uuid_throws_when_cv_service_is_down() {
-            baseRequest.setCvUuid(CV_UUID);
+        @DisplayName("Job absent du cache → lève ResourceNotFoundException")
+        void save_job_throws_when_job_not_in_cache() {
             when(savedJobRepository.findByUserIdAndJobExternalId(USER_ID, JOB_EXT_ID))
                     .thenReturn(Optional.empty());
-            when(cvServiceClient.getCvSkills(CV_UUID, BEARER))
-                    .thenThrow(new RuntimeException("cv-service timeout"));
+            when(jobService.getJobForSave(JOB_EXT_ID))
+                    .thenThrow(new ResourceNotFoundException("Job not found in cache"));
 
-            assertThatThrownBy(() -> savedJobService.saveJob(USER_ID, baseRequest, BEARER))
-                    .isInstanceOf(JobsApiException.class)
-                    .hasMessageContaining("cv-service indisponible");
+            assertThatThrownBy(() -> savedJobService.saveJob(USER_ID, JOB_EXT_ID, null, BEARER))
+                    .isInstanceOf(ResourceNotFoundException.class);
 
             verify(savedJobRepository, never()).save(any());
         }

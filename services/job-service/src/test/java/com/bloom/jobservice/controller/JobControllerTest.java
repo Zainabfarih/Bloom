@@ -167,14 +167,12 @@ class JobControllerTest {
 
 
     @Nested
-    @DisplayName("POST /api/job/saved")
+    @DisplayName("POST /api/job/saved/{jobId}")
     class SaveJobTests {
 
         @Test
         @DisplayName("201 — succès de la sauvegarde avec score")
         void save_job_returns_201_when_authenticated() throws Exception {
-
-            SaveJobRequest request = buildSaveRequest();
 
             SavedJobResponse response = SavedJobResponse.builder()
                     .uuid(UUID.randomUUID())
@@ -185,78 +183,64 @@ class JobControllerTest {
                     .missingSkills(List.of("Kubernetes"))
                     .build();
 
-            when(savedJobService.saveJob(eq(1L), any(), anyString())).thenReturn(response);
+            when(savedJobService.saveJob(eq(1L), eq("ext-123"), any(), anyString()))
+                    .thenReturn(response);
 
-            mockMvc.perform(post("/api/job/saved")
+            mockMvc.perform(post("/api/job/saved/ext-123")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT")
-                            .header("Authorization", "Bearer test-token")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                            .header("X-User-Role", "STUDENT")
+                            .header("Authorization", "Bearer test-token"))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.compatibilityScore").value(75))
                     .andExpect(jsonPath("$.matchedSkills").isArray());
         }
 
         @Test
+        @DisplayName("201 — sauvegarde avec un cvUuid explicite")
+        void save_job_returns_201_with_explicit_cv() throws Exception {
+
+            UUID cvUuid = UUID.randomUUID();
+            SavedJobResponse response = SavedJobResponse.builder()
+                    .uuid(UUID.randomUUID())
+                    .jobExternalId("ext-123")
+                    .cvUuid(cvUuid)
+                    .compatibilityScore(50)
+                    .build();
+
+            when(savedJobService.saveJob(eq(1L), eq("ext-123"), eq(cvUuid), anyString()))
+                    .thenReturn(response);
+
+            mockMvc.perform(post("/api/job/saved/ext-123")
+                            .header("X-Gateway-Secret", GATEWAY_SECRET)
+                            .header("X-User-Id", "1")
+                            .header("X-User-Roles", "STUDENT")
+                            .header("Authorization", "Bearer test-token")
+                            .param("cvUuid", cvUuid.toString()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.compatibilityScore").value(50));
+        }
+
+        @Test
         @DisplayName("401 — erreur sans header d'authentification")
         void save_job_returns_401_when_not_authenticated() throws Exception {
 
-            mockMvc.perform(post("/api/job/saved")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(buildSaveRequest())))
+            mockMvc.perform(post("/api/job/saved/ext-123"))
                     .andExpect(status().isUnauthorized());
-        }
-
-        @Test
-        @DisplayName("400 — erreur si le titre est manquant")
-        void save_job_returns_400_when_title_missing() throws Exception {
-
-            SaveJobRequest invalid = new SaveJobRequest();
-            invalid.setJobExternalId("ext-123");
-
-            mockMvc.perform(post("/api/job/saved")
-                            .header("X-Gateway-Secret", GATEWAY_SECRET)
-                            .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT")
-                            .header("Authorization", "Bearer test-token")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(invalid)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("400 — erreur si l'ID externe est manquant")
-        void save_job_returns_400_when_external_id_missing() throws Exception {
-
-            SaveJobRequest invalid = new SaveJobRequest();
-            invalid.setJobTitle("Java Dev");
-
-            mockMvc.perform(post("/api/job/saved")
-                            .header("X-Gateway-Secret", GATEWAY_SECRET)
-                            .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT")
-                            .header("Authorization", "Bearer test-token")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(invalid)))
-                    .andExpect(status().isBadRequest());
         }
 
         @Test
         @DisplayName("503 — erreur si le cv-service est indisponible")
         void save_job_returns_503_when_cv_service_down() throws Exception {
 
-            when(savedJobService.saveJob(anyLong(), any(), anyString()))
+            when(savedJobService.saveJob(anyLong(), any(), any(), anyString()))
                     .thenThrow(new com.bloom.jobservice.exception.JobsApiException("cv-service indisponible"));
 
-            mockMvc.perform(post("/api/job/saved")
+            mockMvc.perform(post("/api/job/saved/ext-123")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
                             .header("X-User-Id", "1")
-                            .header("X-User-Roles", "STUDENT")
-                            .header("Authorization", "Bearer test-token")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(buildSaveRequest())))
+                            .header("X-User-Role", "STUDENT")
+                            .header("Authorization", "Bearer test-token"))
                     .andExpect(status().isServiceUnavailable());
         }
     }
@@ -388,16 +372,5 @@ class JobControllerTest {
                 .location("Morocco")
                 .extensions(List.of("Full-time"))
                 .build();
-    }
-
-    private SaveJobRequest buildSaveRequest() {
-
-        SaveJobRequest req = new SaveJobRequest();
-        req.setJobExternalId("ext-123");
-        req.setJobTitle("Java Developer");
-        req.setJobCompany("TechCorp");
-        req.setJobLocation("Casablanca");
-        req.setRequiredSkills(List.of("Java", "Docker", "Kubernetes"));
-        return req;
     }
 }
