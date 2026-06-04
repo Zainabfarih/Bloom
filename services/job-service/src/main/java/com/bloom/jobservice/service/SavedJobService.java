@@ -116,25 +116,6 @@ public class SavedJobService {
                         "SavedJob not found: id=" + targetJobId + " for userId=" + userId));
     }
 
-    private SavedJobResponse persistNewSavedJob(Long userId, SaveJobRequest request, String bearerToken) {
-        SkillsDTO cvData = fetchCvSkillsOrThrow(userId, request.getCvUuid(), bearerToken);
-
-        List<String> cvSkills = cvData.getSkills() != null ? cvData.getSkills() : List.of();
-        List<String> required = request.getRequiredSkills() != null ? request.getRequiredSkills() : List.of();
-
-        request.setCvUuid(cvData.getCvUuid());
-        request.setMatchedSkills(skillMatchingService.findMatched(required, cvSkills));
-        request.setMissingSkills(skillMatchingService.findMissing(required, cvSkills));
-        request.setCompatibilityScore(skillMatchingService.computeScore(required, cvSkills));
-
-        SavedJob saved = savedJobRepository.save(savedJobMapper.toEntity(request, userId));
-
-        log.info("Job saved — userId={} jobId={} cvUuid={} score={}%",
-                userId, request.getJobExternalId(), request.getCvUuid(), request.getCompatibilityScore());
-
-        return savedJobMapper.toResponse(saved);
-    }
-
     private SkillsDTO fetchCvSkillsOrThrow(Long userId, UUID cvUuid, String bearerToken) {
         try {
             if (cvUuid != null) {
