@@ -28,6 +28,12 @@
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 
+		<!-- CircuitBreaker (servlet/webmvc) requis par le filtre CircuitBreaker des routes -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+		</dependency>
+
 		<!-- Security & JWT -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
