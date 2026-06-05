@@ -1,0 +1,15 @@
+# Tout ce qui ne doit PAS entrer dans le contexte de build Docker
+target/
+.idea/
+.mvn/
+.git/
+*.iml
+*.md
+.env
+.env.*
+.gitattributes
+.gitignore
+mvnw
+mvnw.cmd
+Dockerfile
+.dockerignore
