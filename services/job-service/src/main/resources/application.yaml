@@ -1,29 +1,17 @@
 spring:
   application:
     name: job-service
-  datasource:
-    url: jdbc:postgresql://bloom-db-server.postgres.database.azure.com:5432/bloom_job?sslmode=require
-    username: dbadmin
-    password: AZrf2026@
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 30000
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    open-in-view: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-  data:
-    redis:
-      url: rediss://default:gQAAAAAAAaYTAAIgcDFlMWRhY2ExYzdmOTE0YzQ0ODE4NjExNmY0MzM2ZTk4Yg@free-colt-108051.upstash.io:6379
-      timeout: 2000ms
-  flyway:
-    enabled: false
+
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  profiles:
+    active: ${CONFIG_SERVER_PROFILE}
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        max-attempts: 5
+        initial-interval: 1000
 
 server:
   port: 8083

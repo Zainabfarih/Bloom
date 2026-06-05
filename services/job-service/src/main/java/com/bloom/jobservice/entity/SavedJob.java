@@ -36,7 +36,7 @@ public class SavedJob {
     @Column(name = "cv_uuid", nullable = false, updatable = false)
     private UUID cvUuid;
 
-    @Column(name = "job_external_id", nullable = false)
+    @Column(name = "job_external_id", nullable = false, length = 1024)
     private String jobExternalId;
 
     @Column(name = "job_title", nullable = false)
