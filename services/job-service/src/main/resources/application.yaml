@@ -21,7 +21,7 @@ spring:
   data:
     redis:
       url: rediss://default:gQAAAAAAAaYTAAIgcDFlMWRhY2ExYzdmOTE0YzQ0ODE4NjExNmY0MzM2ZTk4Yg@free-colt-108051.upstash.io:6379
-      timeout: 2000ms
+      timeout: 5000ms
   flyway:
     enabled: false
 

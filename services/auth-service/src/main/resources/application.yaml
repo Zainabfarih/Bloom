@@ -40,7 +40,7 @@ jwt:
 
 app:
   password-reset-token-expiration: 3600000
-  frontend-url: http://localhost:3000
+  frontend-url: http://localhost:5173
   max-failed-login-attempts: 5
 
 eureka:

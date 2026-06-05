@@ -16,22 +16,14 @@ spring:
               uri: lb://job-service
               predicates:
                 - Path=/api/job/**
-              filters:
-                - name: CircuitBreaker
-                  args:
-                    id: job-service-cb
-                    fallbackUri: forward:/fallback/job
+
 
             # ── CV Service ─────────────────────────────────────────────
             - id: cv-service
               uri: lb://cv-service
               predicates:
                 - Path=/api/cv/**
-              filters:
-                - name: CircuitBreaker
-                  args:
-                    id: cv-service-cb
-                    fallbackUri: forward:/fallback/cv
+
 
             # ── Auth Service ─────────────────────────────────────────────
             - id: auth-service
@@ -98,3 +90,15 @@ resilience4j:
         sliding-window-size: 10
         failure-rate-threshold: 50
         wait-duration-in-open-state: 10s
+
+timelimiter:
+  configs:
+    default:
+      timeout-duration: 20s
+  instances:
+    job-service-cb:
+      timeout-duration: 30s
+    cv-service-cb:
+      timeout-duration: 60s     # PDF parsing + Gemini + HuggingFace fallback can be slow
+    auth-service-cb:
+      timeout-duration: 10s
