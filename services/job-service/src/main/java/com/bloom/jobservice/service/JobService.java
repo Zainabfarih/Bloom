@@ -14,6 +14,7 @@ import org.springframework.util.DigestUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -66,7 +67,15 @@ public class JobService {
                     jobsApiKey
             );
 
+            // CORRECTION ICI : Gestion gracieuse de l'absence de résultats
             if (response.getError() != null) {
+                if (response.getError().contains("Google hasn't returned any results")) {
+                    log.info("No jobs found for query: '{}' in location: '{}'. Returning empty list.", query, location);
+                    // On met en cache la liste vide pour éviter de respammer l'API pour une recherche vide
+                    jobsRedisTemplate.opsForValue().set(searchKey, Collections.emptyList(), CACHE_TTL);
+                    return buildSearchResponse(Collections.emptyList(), false);
+                }
+                // Si c'est une vraie erreur (clé invalide, quota dépassé, etc.), on lance l'exception
                 throw new JobsApiException("JobsAPI error: " + response.getError());
             }
 
@@ -87,6 +96,11 @@ public class JobService {
             return buildSearchResponse(results, false);
 
         } catch (FeignException e) {
+            // Sécurité supplémentaire au cas où l'API renvoie un vrai 404 HTTP
+            if (e.status() == 404) {
+                log.info("API returned 404 Not Found for query: '{}'. Returning empty list.", query);
+                return buildSearchResponse(Collections.emptyList(), false);
+            }
             throw new JobsApiException("JobsAPI call failed — HTTP " + e.status(), e);
         }
     }

@@ -1,17 +1,29 @@
 spring:
   application:
     name: job-service
-  config:
-    import:
-      - "configserver:http://localhost:8888"
-  profiles:
-    active: ${CONFIG_SERVER_PROFILE}
-  cloud:
-    config:
-      fail-fast: true
-      retry:
-        max-attempts: 5
-        initial-interval: 1000
+  datasource:
+    url: jdbc:postgresql://bloom-db-server.postgres.database.azure.com:5432/bloom_job?sslmode=require
+    username: dbadmin
+    password: AZrf2026@
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  data:
+    redis:
+      url: rediss://default:gQAAAAAAAaYTAAIgcDFlMWRhY2ExYzdmOTE0YzQ0ODE4NjExNmY0MzM2ZTk4Yg@free-colt-108051.upstash.io:6379
+      timeout: 2000ms
+  flyway:
+    enabled: false
 
 server:
   port: 8083
@@ -19,7 +31,41 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+      defaultZone: http://localhost:8761/eureka/
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+
+internal:
+  security:
+    gateway-secret: 2RD15mg+lZB1frvOkiaUN9Ycp98o5VMHKHFsfuL4U6U=
+
+skill:
+  extractor:
+    hf:
+      model-url: https://zinoush005-jobbert-skill-extractor-bloom.hf.space/extract
+    gemini:
+      key: AIzaSyAr7ZyuqCWQd7tqjiGsecfmnzr5iAYC0fA
+
+jobsapi:
+  base-url: https://serpapi.com
+  key: a64b314c64efadd28a503e7749c9cb7cc5420dc562d8507c11ec6eaaf04f6541
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+feign:
+  client:
+    config:
+      default:
+        loggerLevel: NONE
+
+logging:
+  level:
+    org.flywaydb: DEBUG

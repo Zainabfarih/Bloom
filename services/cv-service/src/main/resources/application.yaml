@@ -1,25 +1,56 @@
+server:
+  port: 8082
+
 spring:
   application:
     name: cv-service
-  config:
-    import:
-      - "configserver:http://localhost:8888"
-  profiles:
-    active: ${CONFIG_SERVER_PROFILE}
-  cloud:
-    config:
-      fail-fast: true
-      retry:
-        max-attempts: 5
-        initial-interval: 1000
+
+  # ─── DATABASE CV SERVICE ───────────────────────────
+  datasource:
+    url: jdbc:postgresql://bloom-db-server.postgres.database.azure.com:5432/bloom_cv?sslmode=require
+    username: dbadmin
+    password: AZrf2026@
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: false
+
+  # ─── UPLOAD FICHIERS (PDF/DOCX) ────────────────────
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
 
-server:
-  port: 8082
+# ─── SECURITE & JWT & API GATEWAY ────────────────────
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
 
+internal:
+  security:
+    gateway-secret: ${INTERNAL_GATEWAY_SECRET:2RD15mg+lZB1frvOkiaUN9Ycp98o5VMHKHFsfuL4U6U=}
+
+# ─── AI : EXTRACTION DE SKILLS + ANALYSE ATS ─────────
+cv:
+  ai:
+    gemini:
+      key: AQ.Ab8RN6IAl4hpsSSyqcv1XCxSJWCF_rhiBTsKREEAMiYobftAAw
+    hf:
+      skill-extractor-url: ${SKILL_EXTRACTOR_HF_MODEL_URL:https://zinoush005-jobbert-skill-extractor-bloom.hf.space/extract}
+
+# ─── EUREKA DISCOVERY ────────────────────────────────
 eureka:
   client:
     service-url:
@@ -27,3 +58,20 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+
+# ─── DOCS & LOGS & FEIGN ─────────────────────────────
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+feign:
+  client:
+    config:
+      default:
+        loggerLevel: NONE
+
+logging:
+  level:
+    org.flywaydb: DEBUG
