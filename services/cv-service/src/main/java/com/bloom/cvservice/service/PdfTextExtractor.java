@@ -21,8 +21,20 @@ public class PdfTextExtractor {
 
     public String extract(MultipartFile file) {
         validate(file);
+        try {
+            return extract(file.getBytes());
+        } catch (IOException e) {
+            log.warn("Échec de lecture du PDF '{}': {}", file.getOriginalFilename(), e.getMessage());
+            throw new CvProcessingException("Le fichier PDF est corrompu ou illisible.", e);
+        }
+    }
 
-        try (PDDocument document = Loader.loadPDF(file.getBytes())) {
+    /** Extrait le texte d'un PDF déjà chargé en mémoire (ex : fichier stocké en base). */
+    public String extract(byte[] pdfBytes) {
+        if (pdfBytes == null || pdfBytes.length == 0) {
+            throw new CvProcessingException("Le fichier CV est vide.");
+        }
+        try (PDDocument document = Loader.loadPDF(pdfBytes)) {
 
             if (document.isEncrypted()) {
                 throw new CvProcessingException("Le PDF est protégé/chiffré et ne peut être lu.");
@@ -43,7 +55,7 @@ public class PdfTextExtractor {
             return text;
 
         } catch (IOException e) {
-            log.warn("Échec de lecture du PDF '{}': {}", file.getOriginalFilename(), e.getMessage());
+            log.warn("Échec de lecture du PDF: {}", e.getMessage());
             throw new CvProcessingException("Le fichier PDF est corrompu ou illisible.", e);
         }
     }

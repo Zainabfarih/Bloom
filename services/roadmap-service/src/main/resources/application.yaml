@@ -1,24 +1,16 @@
 spring:
   application:
     name: roadmap-service
-  datasource:
-    url: jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require
-    username: postgres.cnjkwnxnzwzehcpmwkeu
-    password: vmBH3JLDui5NBjtR
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 30000
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    open-in-view: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_batch_fetch_size: 20
+  config:
+    import: "configserver:http://localhost:8888"
+  profiles:
+    active: ${CONFIG_SERVER_PROFILE:git}
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        max-attempts: 5
+        initial-interval: 1000
 
 server:
   port: 8085
@@ -26,38 +18,7 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
-
-internal:
-  security:
-    gateway-secret: 2RD15mg+lZB1frvOkiaUN9Ycp98o5VMHKHFsfuL4U6U=
-
-ai:
-  gemini:
-    api-key: AQ.Ab8RN6K_o1S77yTrun1HK1YIcQ1NYjmFxpnVZIXx6gdefRukPg
-    max-output-tokens: 4096
-    timeout-seconds: 60
-
-spring.cloud.openfeign.circuitbreaker.enabled: true
-
-feign:
-  client:
-    config:
-      default:
-        loggerLevel: NONE
-
-jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-  api-docs:
-    path: /v3/api-docs
-
-logging:
-  level:
-    org.flywaydb: DEBUG

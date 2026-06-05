@@ -6,8 +6,8 @@ spring:
     name: auth-service
   datasource:
     url: jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require
-    username: postgres.kqbquwbzbzxfwbfiayxy
-    password: "MiFkT#DQVj+5H,_"
+    username: ${DB_AUTH_USER}
+    password: ${DB_AUTH_PASS}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -21,44 +21,31 @@ spring:
     config:
       enabled: false
   mail:
-    host: smtp.gmail.com
+    host: ${MAIL_HOST}
     port: 587
-    username: assiyasousou1@gmail.com
-    password: "gtsl lqnn cprz osgo"
+    username: ${MAIL_USER}
+    password: ${MAIL_PASS}
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
 
-internal:
-  security:
-    gateway-secret: 2RD15mg+lZB1frvOkiaUN9Ycp98o5VMHKHFsfuL4U6U=
-
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-  access-token-expiration: 900000
-  refresh-token-expiration: 604800000
-
+  secret: ${JWT_SECRET}
+  access-token-expiration: 900000      # 15min
+  refresh-token-expiration: 604800000  # 7j
 app:
-  password-reset-token-expiration: 3600000
-  frontend-url: http://localhost:5173
+  password-reset-token-expiration: 3600000 # 1 hour
+  frontend-url: ${FRONTEND_URL}
   max-failed-login-attempts: 5
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
-    fetch-registry: true
-    register-with-eureka: true
-  instance:
-    prefer-ip-address: true
-    instance-id: ${spring.application.name}:${server.port}
+    # Optionnel : Si vous testez sans lancer votre Eureka Server, mettez ces deux lignes à 'false' pour éviter les erreurs rouges au démarrage :
+      fetch-registry: false
+      register-with-eureka: false
 
 logging:
   level:
     org.springframework.security: TRACE
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-  api-docs:
-    path: /v3/api-docs

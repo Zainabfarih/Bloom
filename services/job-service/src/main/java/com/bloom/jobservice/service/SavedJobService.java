@@ -1,6 +1,6 @@
 package com.bloom.jobservice.service;
 
-import com.bloom.jobservice.dto.SaveJobRequest;
+import com.bloom.jobservice.dto.JobDetailResponse;
 import com.bloom.jobservice.dto.SavedJobResponse;
 import com.bloom.jobservice.dto.SkillGapResponse;
 import com.bloom.jobservice.dto.SkillsDTO;
@@ -24,17 +24,56 @@ import java.util.UUID;
 @Slf4j
 public class SavedJobService {
 
-    private final SavedJobRepository  savedJobRepository;
+    private final SavedJobRepository   savedJobRepository;
     private final SkillMatchingService skillMatchingService;
     private final CvServiceClient      cvServiceClient;
+    private final JobService           jobService;
     private final SavedJobMapper       savedJobMapper;
 
+    /**
+     * Sauvegarde un job déjà présent en cache (via /search), identifié par {@code jobId}.
+     * Détails et skills requis récupérés server-side ; matching contre le CV actif
+     * (ou {@code cvUuid} si fourni).
+     */
     @Transactional
-    public SavedJobResponse saveJob(Long userId, SaveJobRequest request, String bearerToken) {
-        return savedJobRepository
-                .findByUserIdAndJobExternalId(userId, request.getJobExternalId())
-                .map(savedJobMapper::toResponse)
-                .orElseGet(() -> persistNewSavedJob(userId, request, bearerToken));
+    public SavedJobResponse saveJob(Long userId, String jobId, UUID cvUuid, String bearerToken) {
+        var existing = savedJobRepository.findByUserIdAndJobExternalId(userId, jobId);
+        if (existing.isPresent()) {
+            return savedJobMapper.toResponse(existing.get()); // idempotent
+        }
+
+        JobDetailResponse job = jobService.getJobForSave(jobId);
+        List<String> required = job.getExtractedSkills() != null ? job.getExtractedSkills() : List.of();
+
+        SkillsDTO cvData = fetchCvSkillsOrThrow(userId, cvUuid, bearerToken);
+        List<String> cvSkills = cvData.getSkills() != null ? cvData.getSkills() : List.of();
+
+        List<String> matched = skillMatchingService.findMatched(required, cvSkills);
+        List<String> missing = skillMatchingService.findMissing(required, cvSkills);
+        int score            = skillMatchingService.computeScore(required, cvSkills);
+
+        String applyUrl = (job.getApplyOptions() != null && !job.getApplyOptions().isEmpty())
+                ? job.getApplyOptions().get(0).getLink() : null;
+
+        SavedJob entity = SavedJob.builder()
+                .userId(userId)
+                .cvUuid(cvData.getCvUuid())
+                .jobExternalId(jobId)
+                .jobTitle(job.getTitle())
+                .jobCompany(job.getCompanyName())
+                .jobLocation(job.getLocation())
+                .jobApplyUrl(applyUrl)
+                .compatibilityScore(score)
+                .build();
+        entity.addSkills(required, SkillType.REQUIRED);
+        entity.addSkills(matched,  SkillType.MATCHED);
+        entity.addSkills(missing,  SkillType.MISSING);
+
+        SavedJob saved = savedJobRepository.save(entity);
+        log.info("Job saved — userId={} jobId={} cvUuid={} score={}%",
+                userId, jobId, cvData.getCvUuid(), score);
+
+        return savedJobMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -75,25 +114,6 @@ public class SavedJobService {
                 ))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "SavedJob not found: id=" + targetJobId + " for userId=" + userId));
-    }
-
-    private SavedJobResponse persistNewSavedJob(Long userId, SaveJobRequest request, String bearerToken) {
-        SkillsDTO cvData = fetchCvSkillsOrThrow(userId, request.getCvUuid(), bearerToken);
-
-        List<String> cvSkills = cvData.getSkills() != null ? cvData.getSkills() : List.of();
-        List<String> required = request.getRequiredSkills() != null ? request.getRequiredSkills() : List.of();
-
-        request.setCvUuid(cvData.getCvUuid());
-        request.setMatchedSkills(skillMatchingService.findMatched(required, cvSkills));
-        request.setMissingSkills(skillMatchingService.findMissing(required, cvSkills));
-        request.setCompatibilityScore(skillMatchingService.computeScore(required, cvSkills));
-
-        SavedJob saved = savedJobRepository.save(savedJobMapper.toEntity(request, userId));
-
-        log.info("Job saved — userId={} jobId={} cvUuid={} score={}%",
-                userId, request.getJobExternalId(), request.getCvUuid(), request.getCompatibilityScore());
-
-        return savedJobMapper.toResponse(saved);
     }
 
     private SkillsDTO fetchCvSkillsOrThrow(Long userId, UUID cvUuid, String bearerToken) {
