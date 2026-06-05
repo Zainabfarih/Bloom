@@ -13,6 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import com.bloom.authservice.dto.AdminStatsResponse;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 
 @Service
 @RequiredArgsConstructor
@@ -67,8 +75,9 @@ public class UserService {
 
     @Transactional
     public void recoverUser(Long id) {
-        userRepository.findById(id).ifPresentOrElse(u -> {
-            if (u.isEnabled()) {
+        // findByIdIncludingDeleted bypasses @SQLRestriction so soft-deleted users can be restored
+        userRepository.findByIdIncludingDeleted(id).ifPresentOrElse(u -> {
+            if (u.isEnabled() && !u.isDeleted()) {
                 throw new IllegalStateException("User is already active");
             }
             u.setEnabled(true);
@@ -79,16 +88,70 @@ public class UserService {
         }, () -> { throw new RuntimeException("User not found"); });
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<UserDTO> getAllUsers() {
+        requireAdmin();
+        // Include soft-deleted users so the admin can see status and restore them
+        return userRepository.findAllIncludingDeleted().stream()
+                .map(userMapper::toAdminDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public AdminStatsResponse getStats() {
+        requireAdmin();
+
+        long total   = userRepository.countAllIncludingDeleted();
+        long active  = userRepository.countActive();
+        long deleted = userRepository.countDeleted();
+        long admins  = userRepository.countByRoleActive(Role.ADMIN.name());
+        long students = userRepository.countByRoleActive(Role.STUDENT.name());
+
+        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        long newThisMonth = userRepository.countCreatedSince(startOfMonth);
+
+        return AdminStatsResponse.builder()
+                .totalUsers(total)
+                .activeUsers(active)
+                .deletedUsers(deleted)
+                .newUsersThisMonth(newThisMonth)
+                .adminCount(admins)
+                .studentCount(students)
+                .signupsByDay(buildSignupTrend())
+                .build();
+    }
+
+    /** Sign-ups per day for the last 30 days, DB-agnostic (computed in-memory). */
+    private List<AdminStatsResponse.DailyCount> buildSignupTrend() {
+        DateTimeFormatter fmt = DateTimeFormatter.ISO_LOCAL_DATE;
+        LocalDate today = LocalDate.now();
+        LocalDate start = today.minusDays(29);
+
+        // Seed every day with 0 so the chart has no gaps
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (int i = 0; i < 30; i++) {
+            counts.put(start.plusDays(i).format(fmt), 0L);
+        }
+
+        userRepository.findAllIncludingDeleted().forEach(u -> {
+            if (u.getCreatedAt() == null) return;
+            LocalDate day = u.getCreatedAt().toLocalDate();
+            if (!day.isBefore(start) && !day.isAfter(today)) {
+                counts.merge(day.format(fmt), 1L, Long::sum);
+            }
+        });
+
+        List<AdminStatsResponse.DailyCount> trend = new ArrayList<>();
+        counts.forEach((date, count) -> trend.add(new AdminStatsResponse.DailyCount(date, count)));
+        return trend;
+    }
+
+    private void requireAdmin() {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         if (!currentUser.getRole().equals(Role.ADMIN)) {
             throw new AccessDeniedException("Access denied");
         }
-        return userRepository.findAll().stream()
-                .filter(User::isEnabled)
-                .map(userMapper::toDTO)
-                .collect(Collectors.toList());
     }
+
 }

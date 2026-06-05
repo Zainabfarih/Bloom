@@ -30,6 +30,7 @@ public class SavedJobMapper {
 
     public SavedJobResponse toResponse(SavedJob entity) {
         return SavedJobResponse.builder()
+                .id(entity.getId())
                 .uuid(entity.getUuid())
                 .jobExternalId(entity.getJobExternalId())
                 .jobTitle(entity.getJobTitle())

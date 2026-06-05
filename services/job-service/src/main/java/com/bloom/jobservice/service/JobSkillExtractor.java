@@ -53,7 +53,7 @@ public class JobSkillExtractor {
             payload.put("contents", List.of(Map.of("parts", List.of(Map.of("text", buildGeminiPrompt(text))))));
             payload.put("generationConfig", Map.of(
                     "temperature",      0.0,
-                    "maxOutputTokens",  1024,
+                    "maxOutputTokens",  2048,
                     "responseMimeType", "application/json"
             ));
 

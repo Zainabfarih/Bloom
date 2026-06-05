@@ -34,11 +34,17 @@ public class JwtGatewayFilter extends OncePerRequestFilter {
     private static final Set<String> EXCLUDED_PATHS = Set.of(
             "/api/auth/login",
             "/api/auth/register",
+            // Public, pre-authentication flows — must NOT require a Bearer token:
+            "/api/auth/refresh",
+            "/api/auth/logout",
+            "/api/auth/password-reset/initiate",
+            "/api/auth/password-reset/update",
             "/actuator/health",
             "/fallback/job",
             "/fallback/auth",
             "/fallback/cv"
     );
+
 
     public JwtGatewayFilter(@Value("${jwt.secret}") String secret,
                             @Value("${internal.security.gateway-secret}") String internalSecret) {

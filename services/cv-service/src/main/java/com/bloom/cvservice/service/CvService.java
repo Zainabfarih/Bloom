@@ -146,7 +146,7 @@ public class CvService {
     private void deactivateExistingCvs(Long userId) {
         cvRepository.findByUserIdAndActiveTrue(userId).ifPresent(existing -> {
             existing.setActive(false);
-            cvRepository.save(existing);
+            cvRepository.saveAndFlush(existing);
         });
     }
 

@@ -62,8 +62,9 @@ public class CvSkillExtractor {
             payload.put("contents", List.of(Map.of("parts", List.of(Map.of("text", buildPrompt(text))))));
             payload.put("generationConfig", Map.of(
                     "temperature",      0.0,
-                    "maxOutputTokens",  1024,
-                    "responseMimeType", "application/json"
+                    "maxOutputTokens",  2048,
+                    "responseMimeType", "application/json",
+                    "thinkingConfig",   Map.of("thinkingBudget", 0)   // ← disable "thinking" for flash
             ));
 
             String url = GEMINI_BASE_URL + GEMINI_MODEL + ":generateContent?key="
