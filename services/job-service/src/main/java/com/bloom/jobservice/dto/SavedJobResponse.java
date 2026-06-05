@@ -10,6 +10,7 @@ import java.util.UUID;
 @Data
 @Builder
 public class SavedJobResponse {
+    private Long id;
     private UUID uuid;
     private String jobExternalId;
     private String jobTitle;

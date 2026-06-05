@@ -9,6 +9,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import com.bloom.authservice.dto.AdminStatsResponse;
+
 
 @RestController
 @RequestMapping("/api/users")
@@ -42,9 +44,16 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/api/users")
+    @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminStatsResponse> getStats() {
+        return ResponseEntity.ok(userService.getStats());
+    }
+
 }

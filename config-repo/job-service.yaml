@@ -21,7 +21,7 @@ spring:
   data:
     redis:
       url: ${REDIS_URL}
-      timeout: 2000ms
+      timeout: 5000ms
 
   flyway:
     enabled: true
