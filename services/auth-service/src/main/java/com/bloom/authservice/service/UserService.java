@@ -11,6 +11,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -74,5 +77,18 @@ public class UserService {
             u.setFailedLoginAttempts(0);
             userRepository.save(u);
         }, () -> { throw new RuntimeException("User not found"); });
+    }
+
+    @Transactional
+    public List<UserDTO> getAllUsers() {
+        User currentUser = (User) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        if (!currentUser.getRole().equals(Role.ADMIN)) {
+            throw new AccessDeniedException("Access denied");
+        }
+        return userRepository.findAll().stream()
+                .filter(User::isEnabled)
+                .map(userMapper::toDTO)
+                .collect(Collectors.toList());
     }
 }

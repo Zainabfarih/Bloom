@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -38,5 +40,11 @@ public class UserController {
     public ResponseEntity<Void> recoverUser(@PathVariable Long id) {
         userService.recoverUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/api/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 }
