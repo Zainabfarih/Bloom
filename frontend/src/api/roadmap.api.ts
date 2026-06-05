@@ -2,10 +2,18 @@ import client from './client';
 import type {
   RoadmapResponse,
   RoadmapGenerationRequest,
-  StepStatusUpdateDTO,
-  StepDTO,
+  StepStatus,
 } from '@/types';
 
+/**
+ * Roadmap service client.
+ * Backend base path: /api/roadmap (see RoadmapController).
+ *
+ *   POST  /roadmap/generate              { targetJobId }   (targetJobId = SavedJob.id)
+ *   GET   /roadmap                       (all roadmaps for user)
+ *   GET   /roadmap/{roadmapId}
+ *   PATCH /roadmap/steps/{stepId}/status { newStatus }
+ */
 export const roadmapApi = {
   getAll: async (): Promise<RoadmapResponse[]> => {
     const response = await client.get('/roadmap');
@@ -22,30 +30,14 @@ export const roadmapApi = {
     return response.data;
   },
 
-  getStep: async (roadmapId: number, stepId: number): Promise<StepDTO> => {
-    const response = await client.get(`/roadmap/${roadmapId}/steps/${stepId}`);
-    return response.data;
-  },
-
+  /** Returns the full updated roadmap (with recomputed progress). */
   updateStepStatus: async (
-    stepId: string,
-    newStatus: StepStatusUpdateDTO['newStatus']
+    stepId: number,
+    newStatus: StepStatus
   ): Promise<RoadmapResponse> => {
-    const response = await client.patch(`/roadmap/steps/${stepId}/status`, { newStatus });
-    return response.data;
-  },
-
-  deleteRoadmap: async (roadmapId: number): Promise<void> => {
-    await client.delete(`/roadmap/${roadmapId}`);
-  },
-
-  getRoadmapProgress: async (roadmapId: number): Promise<{ progressPercentage: number }> => {
-    const response = await client.get(`/roadmap/${roadmapId}/progress`);
-    return response.data;
-  },
-
-  regenerate: async (roadmapId: number): Promise<RoadmapResponse> => {
-    const response = await client.post(`/roadmap/${roadmapId}/regenerate`);
+    const response = await client.patch(`/roadmap/steps/${stepId}/status`, {
+      newStatus,
+    });
     return response.data;
   },
 };

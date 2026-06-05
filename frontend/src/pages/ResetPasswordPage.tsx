@@ -83,14 +83,8 @@ export const ResetPasswordPage = () => {
 
         {success ? (
           <>
-            <div style={{
-              width: 52, height: 52, borderRadius: '50%',
-              background: 'var(--green-glow)',
-              border: '1px solid rgba(52,211,153,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 20,
-            }}>
-              <CheckCircle2 size={26} color="var(--green)" />
+            <div className={styles.successIcon}>
+              <CheckCircle2 size={26} />
             </div>
             <h1 className={styles.title}>Password updated!</h1>
             <p className={styles.subtitle}>

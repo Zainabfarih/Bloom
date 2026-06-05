@@ -1,30 +1,49 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   LayoutDashboard, FileText, Briefcase, Map, User,
   LogOut, Flower2, ShieldCheck,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { authApi } from '../../api/auth.api';
 import styles from './Sidebar.module.css';
 
-const NAV = [
+interface NavItem {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+}
+
+// Student-facing features
+const STUDENT_NAV: NavItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/cv',        icon: FileText,        label: 'My CV' },
   { to: '/jobs',      icon: Briefcase,       label: 'Jobs' },
   { to: '/roadmap',   icon: Map,             label: 'Roadmap' },
-  { to: '/profile',   icon: User,            label: 'Profile' },
+];
+
+// Admin-only features
+const ADMIN_NAV: NavItem[] = [
+  { to: '/admin', icon: ShieldCheck, label: 'Admin Panel' },
 ];
 
 export const Sidebar = () => {
   const { user, clearAuth, refreshToken } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN';
+
+  // Admins get a focused, admin-only experience; students get the learner features.
+  const primaryNav = isAdmin ? ADMIN_NAV : STUDENT_NAV;
 
   const handleLogout = async () => {
     try {
       await authApi.logout(refreshToken);
     } finally {
       clearAuth();
+      // Wipe cached data so the next user who logs in doesn't see this user's data
+      queryClient.clear();
       navigate('/login', { replace: true });
     }
   };
@@ -41,13 +60,13 @@ export const Sidebar = () => {
 
       {/* Nav */}
       <nav className={styles.nav}>
-        <p className={styles.navSection}>Menu</p>
-        {NAV.map(({ to, icon: Icon, label }) => (
+        <p className={styles.navSection}>{isAdmin ? 'Administration' : 'Menu'}</p>
+        {primaryNav.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `${styles.link} ${isActive ? styles.active : ''}`
+              `${styles.link} ${isAdmin ? styles.adminLink : ''} ${isActive ? styles.active : ''}`
             }
           >
             <Icon size={17} />
@@ -55,20 +74,17 @@ export const Sidebar = () => {
           </NavLink>
         ))}
 
-        {isAdmin && (
-          <>
-            <p className={styles.navSection} style={{ marginTop: 20 }}>Admin</p>
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `${styles.link} ${styles.adminLink} ${isActive ? styles.active : ''}`
-              }
-            >
-              <ShieldCheck size={17} />
-              <span>Admin Panel</span>
-            </NavLink>
-          </>
-        )}
+        {/* Account section — available to everyone */}
+        <p className={styles.navSection} style={{ marginTop: 20 }}>Account</p>
+        <NavLink
+          to="/profile"
+          className={({ isActive }) =>
+            `${styles.link} ${isActive ? styles.active : ''}`
+          }
+        >
+          <User size={17} />
+          <span>Profile</span>
+        </NavLink>
       </nav>
 
       {/* User info */}

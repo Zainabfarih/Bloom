@@ -8,6 +8,7 @@ import type {
   RefreshTokenRequest,
   TokenValidationResponse,
   UserDTO,
+  AdminStatsResponse,
 } from '@/types';
 
 export const authApi = {
@@ -79,6 +80,12 @@ export const authApi = {
   // Admin endpoints
   getAllUsers: async (): Promise<UserDTO[]> => {
     const response = await client.get('/users');
+    return response.data;
+  },
+
+  /** Platform analytics for the admin dashboard. */
+  getAdminStats: async (): Promise<AdminStatsResponse> => {
+    const response = await client.get('/users/stats');
     return response.data;
   },
 

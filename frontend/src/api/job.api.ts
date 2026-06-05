@@ -4,27 +4,32 @@ import type {
   JobSearchResponse,
   SavedJobResponse,
   SaveJobRequest,
-  SkillGapResponse,
 } from '@/types';
 
+/**
+ * Job service client.
+ * Backend base path: /api/job (see JobController).
+ *
+ *   GET    /job/search?query&location   (SerpAPI, cached 24h)
+ *   GET    /job/{jobId}                 (detail — requires a prior search)
+ *   POST   /job/saved                   (save + server-side skill match)
+ *   GET    /job/saved                   (ordered by compatibility DESC)
+ *   GET    /job/saved/{uuid}
+ *   DELETE /job/saved/{jobExternalId}   (NB: deletes by EXTERNAL id, not uuid)
+ */
 export const jobApi = {
   searchJobs: async (
     query: string,
-    location?: string,
-    pagination?: { page: number; limit: number }
+    location?: string
   ): Promise<JobSearchResponse> => {
-    const params: Record<string, string | number> = { query };
+    const params: Record<string, string> = { query };
     if (location) params.location = location;
-    if (pagination) {
-      params.page = pagination.page;
-      params.limit = pagination.limit;
-    }
     const response = await client.get('/job/search', { params });
     return response.data;
   },
 
   getJobDetails: async (jobId: string): Promise<JobDetailResponse> => {
-    const response = await client.get(`/job/${jobId}`);
+    const response = await client.get(`/job/${encodeURIComponent(jobId)}`);
     return response.data;
   },
 
@@ -43,32 +48,11 @@ export const jobApi = {
     return response.data;
   },
 
-  deleteSavedJob: async (uuid: string): Promise<void> => {
-    await client.delete(`/job/saved/${uuid}`);
-  },
-
   /**
-   * Get skill gap for a specific job vs the user's active CV.
-   * Pass jobId=undefined to skip the request (returns null).
+   * Remove a saved job. The backend deletes by the job's EXTERNAL id
+   * (the SerpAPI id), NOT the saved-job uuid.
    */
-  getSkillGap: async (
-    jobId?: number | null,
-    cvUuid?: string
-  ): Promise<SkillGapResponse | null> => {
-    if (!jobId) return null;
-    const params: Record<string, string | number> = { jobId };
-    if (cvUuid) params.cvUuid = cvUuid;
-    const response = await client.get('/job/skill-gap', { params });
-    return response.data;
-  },
-
-  getRecommendedJobs: async (cvUuid: string): Promise<JobSearchResponse> => {
-    const response = await client.get(`/job/recommended`, { params: { cvUuid } });
-    return response.data;
-  },
-
-  analyzeJobSkills: async (jobId: string): Promise<{ skills: string[] }> => {
-    const response = await client.get(`/job/${jobId}/skills`);
-    return response.data;
+  deleteSavedJob: async (jobExternalId: string): Promise<void> => {
+    await client.delete(`/job/saved/${encodeURIComponent(jobExternalId)}`);
   },
 };

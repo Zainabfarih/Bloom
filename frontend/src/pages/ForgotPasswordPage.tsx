@@ -47,14 +47,8 @@ export const ForgotPasswordPage = () => {
 
         {sent ? (
           <>
-            <div style={{
-              width: 52, height: 52, borderRadius: '50%',
-              background: 'var(--green-glow)',
-              border: '1px solid rgba(52,211,153,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 20,
-            }}>
-              <Mail size={24} color="var(--green)" />
+            <div className={styles.successIcon}>
+              <Mail size={24} />
             </div>
             <h1 className={styles.title}>Check your email</h1>
             <p className={styles.subtitle}>

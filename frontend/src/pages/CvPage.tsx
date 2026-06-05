@@ -6,11 +6,13 @@ import {
 import { useRef, useState } from 'react';
 import { cvApi } from '../api/cv.api';
 import { Spinner } from '../components/ui/Spinner';
+import { useToast } from '../components/ui/Toast';
 import type { CvResponse, CvAnalysisResponse } from '../types';
 import styles from './CvPage.module.css';
 
 export const CvPage = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [expandedUuid, setExpandedUuid] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState('');
@@ -22,20 +24,27 @@ export const CvPage = () => {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: cvApi.upload,
+    mutationFn: (file: File) => cvApi.upload(file),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cvs'] });
       setUploadError('');
+      toast.success('CV uploaded and analysed');
     },
     onError: (err: unknown) => {
       const e = err as { response?: { data?: { message?: string } } };
-      setUploadError(e?.response?.data?.message ?? 'Upload failed. Please try again.');
+      const msg = e?.response?.data?.message ?? 'Upload failed. Please try again.';
+      setUploadError(msg);
+      toast.error(msg);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: cvApi.deleteCv,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cvs'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cvs'] });
+      toast.info('CV deleted');
+    },
+    onError: () => toast.error('Could not delete this CV'),
   });
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
