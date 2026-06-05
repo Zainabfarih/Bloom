@@ -64,7 +64,7 @@ public class CvSkillExtractor {
                     "temperature",      0.0,
                     "maxOutputTokens",  4096,
                     "responseMimeType", "application/json",
-                    "thinkingConfig",   Map.of("thinkingBudget", 0) // évite la troncature du JSON
+                    "thinkingConfig",   Map.of("thinkingBudget", 0)
             ));
 
             String url = GEMINI_BASE_URL + GEMINI_MODEL + ":generateContent?key="
