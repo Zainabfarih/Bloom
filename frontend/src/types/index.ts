@@ -169,6 +169,8 @@ export interface JobDetailResponse {
 }
 
 export interface SavedJobResponse {
+  /** Numeric DB id — required as `targetJobId` when generating a roadmap. */
+  id: number;
   uuid: string;
   jobExternalId: string;
   jobTitle: string;
@@ -221,7 +223,18 @@ export interface SkillGapResponse {
 // ROADMAP SERVICE DTOs
 // ============================================
 
-export type StepStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+/**
+ * Mirrors the backend `StepStatus` enum exactly.
+ * Users cycle PENDING → IN_PROGRESS → COMPLETED; ACCEPTED/REJECTED are
+ * set by the AI-review flow on the backend.
+ */
+export type StepStatus =
+  | 'PENDING'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'ACCEPTED'
+  | 'REJECTED';
+
 export type ResourceType = 'COURSE' | 'TUTORIAL' | 'ARTICLE' | 'BOOK' | 'PROJECT';
 
 export interface ResourceDTO {
@@ -265,14 +278,22 @@ export interface RoadmapGenerationRequest {
 }
 
 // ============================================
-// ADMIN DTOs (frontend-only aggregates)
+// ADMIN DTOs (mirrors auth-service AdminStatsResponse)
 // ============================================
+
+export interface DailyCount {
+  date: string; // ISO yyyy-MM-dd
+  count: number;
+}
 
 export interface AdminStatsResponse {
   totalUsers: number;
   activeUsers: number;
-  newUsersThisMonth: number;
   deletedUsers: number;
+  newUsersThisMonth: number;
+  adminCount: number;
+  studentCount: number;
+  signupsByDay: DailyCount[];
 }
 
 // ============================================

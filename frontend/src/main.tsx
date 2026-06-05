@@ -4,7 +4,12 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './components/ui/Toast';
+import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import './index.css';
+import { useAuthStore } from './store/auth.store';
+
 
 import { LoginPage }          from './pages/LoginPage';
 import { RegisterPage }       from './pages/RegisterPage';
@@ -26,6 +31,11 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const RootRedirect = () => {
+  const user = useAuthStore(s => s.user);
+  return <Navigate to={user?.role === 'ADMIN' ? '/admin' : '/dashboard'} replace />;
+};
 
 const NotFoundPage = () => (
   <div style={{
@@ -56,42 +66,69 @@ const NotFoundPage = () => (
 
 export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          {/* Public */}
-          <Route path="/login"           element={<LoginPage />} />
-          <Route path="/register"        element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password"  element={<ResetPasswordPage />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <ConfirmProvider>
+            <BrowserRouter>
+              <Routes>
+                {/* Public */}
+                <Route path="/login"           element={<LoginPage />} />
+                <Route path="/register"        element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
-          {/* Protected — all share AppLayout */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/cv"        element={<CvPage />} />
-              <Route path="/jobs"      element={<JobsPage />} />
-              <Route path="/roadmap"   element={<RoadmapPage />} />
-              <Route path="/profile"   element={<ProfilePage />} />
-            </Route>
-          </Route>
+                {/* Protected — all share AppLayout */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<AppLayout />}>
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/cv"        element={<CvPage />} />
+                    <Route path="/jobs"      element={<JobsPage />} />
+                    <Route path="/roadmap"   element={<RoadmapPage />} />
+                    <Route path="/profile"   element={<ProfilePage />} />
+                  </Route>
+                </Route>
 
-          {/* Admin — requires ADMIN role */}
-          <Route element={<ProtectedRoute requiredRole="ADMIN" />}>
-            <Route element={<AppLayout />}>
-              <Route path="/admin" element={<AdminPage />} />
-            </Route>
-          </Route>
+                {/* Admin — requires ADMIN role */}
+                <Route element={<ProtectedRoute requiredRole="ADMIN" />}>
+                  <Route element={<AppLayout />}>
+                    <Route path="/admin" element={<AdminPage />} />
+                  </Route>
+                </Route>
 
-          {/* Root redirect */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                {/* Root redirect — role-aware */}
+                <Route path="/" element={<RootRedirect />} />
 
-          {/* 404 */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+                {/* 404 */}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </BrowserRouter>
+          </ConfirmProvider>
+        </ToastProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
+}
+
+// ── Defensive guard against third-party DOM mutations (Google Translate,
+//    Grammarly, etc.) that crash React 19 with:
+//    "NotFoundError: Failed to execute 'removeChild' on 'Node'".
+//    These extensions replace/move text nodes, so React later tries to remove
+//    or insert relative to a node that's no longer where it expects. ──
+if (typeof window !== 'undefined' && !(window as unknown as { __domGuard?: boolean }).__domGuard) {
+  (window as unknown as { __domGuard?: boolean }).__domGuard = true;
+
+  const originalRemoveChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function <T extends Node>(this: Node, child: T): T {
+    if (child.parentNode !== this) return child;
+    return originalRemoveChild.call(this, child) as T;
+  };
+
+  const originalInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function <T extends Node>(this: Node, newNode: T, referenceNode: Node | null): T {
+    if (referenceNode && referenceNode.parentNode !== this) return newNode;
+    return originalInsertBefore.call(this, newNode, referenceNode) as T;
+  };
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

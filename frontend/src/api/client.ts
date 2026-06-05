@@ -36,13 +36,17 @@ client.interceptors.response.use(
 
     if (error.response?.status !== 401 || original._retry) return Promise.reject(error);
     original._retry = true;
-    original.headers = original.headers ?? {};
+
+    const setAuthHeader = (token: string) => {
+      original.headers = original.headers ?? {};
+      original.headers.Authorization = `Bearer ${token}`;
+    };
 
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {
         queue.push({ resolve, reject });
       }).then(token => {
-        original.headers.Authorization = `Bearer ${token}`;
+        setAuthHeader(token);
         return client(original);
       });
     }
@@ -56,7 +60,7 @@ client.interceptors.response.use(
       const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
       setTokens(data.accessToken, data.refreshToken);
       processQueue(null, data.accessToken);
-      original.headers.Authorization = `Bearer ${data.accessToken}`;
+      setAuthHeader(data.accessToken);
       return client(original);
     } catch (err) {
       processQueue(err, null);

@@ -8,6 +8,7 @@ import { authApi } from '../api/auth.api';
 import { useAuthStore } from '../store/auth.store';
 import { Spinner } from '../components/ui/Spinner';
 import styles from './Auth.module.css';
+import { useQueryClient } from '@tanstack/react-query';
 
 const schema = z.object({
   email:    z.string().email('Enter a valid email address'),
@@ -18,6 +19,7 @@ type FormData = z.infer<typeof schema>;
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const setTokens = useAuthStore(s => s.setTokens);
   const setUser   = useAuthStore(s => s.setUser);
   const [serverError, setServerError] = useState('');
@@ -33,9 +35,11 @@ export const LoginPage = () => {
     setServerError('');
     try {
       const res = await authApi.login(data);
+      queryClient.clear();
       setTokens(res.accessToken, res.refreshToken);
       setUser(res.user);
-      navigate('/dashboard', { replace: true });
+      setUser(res.user);
+      navigate(res.user.role === 'ADMIN' ? '/admin' : '/dashboard', { replace: true });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setServerError(e?.response?.data?.message ?? 'Invalid email or password');

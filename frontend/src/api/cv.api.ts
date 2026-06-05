@@ -12,26 +12,36 @@ export interface SkillItem {
   confidence?: number;
 }
 
+/**
+ * CV service client.
+ * Backend base path: /api/cv  (frontend axios baseURL is /api → we use /cv/...)
+ *
+ * Endpoints (see CvController):
+ *   POST   /cv/upload            (multipart: file, title?)
+ *   POST   /cv/manual
+ *   GET    /cv/me                (active CV)
+ *   GET    /cv/me/all            (all CVs)
+ *   GET    /cv/{uuid}/skills
+ *   GET    /cv/{uuid}/analysis
+ *   DELETE /cv/{uuid}
+ */
 export const cvApi = {
-  getAllCvs: async (): Promise<CvResponse[]> => {
-    const response = await client.get('/cv');
-    return response.data;
-  },
-
-  /** Alias — used throughout the app */
+  /** All CVs for the current user. */
   getAllMyCvs: async (): Promise<CvResponse[]> => {
-    const response = await client.get('/cv');
+    const response = await client.get('/cv/me/all');
     return response.data;
   },
 
-  getCvByUuid: async (uuid: string): Promise<CvResponse> => {
-    const response = await client.get(`/cv/${uuid}`);
+  /** The user's currently-active CV (404 if none — callers should handle). */
+  getActiveCv: async (): Promise<CvResponse> => {
+    const response = await client.get('/cv/me');
     return response.data;
   },
 
-  upload: async (file: File): Promise<CvResponse> => {
+  upload: async (file: File, title?: string): Promise<CvResponse> => {
     const formData = new FormData();
     formData.append('file', file);
+    if (title) formData.append('title', title);
     const response = await client.post('/cv/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -43,19 +53,9 @@ export const cvApi = {
     return response.data;
   },
 
-  analyzeCv: async (cvUuid: string): Promise<CvAnalysisResponse> => {
-    const response = await client.get(`/cv/${cvUuid}/analyze`);
-    return response.data;
-  },
-
-  /** Alias used by CvPage */
+  /** ATS analysis (computed on the fly, not persisted). */
   getCvAnalysis: async (cvUuid: string): Promise<CvAnalysisResponse> => {
-    const response = await client.get(`/cv/${cvUuid}/analyze`);
-    return response.data;
-  },
-
-  setActiveCv: async (cvUuid: string): Promise<CvResponse> => {
-    const response = await client.patch(`/cv/${cvUuid}/activate`);
+    const response = await client.get(`/cv/${cvUuid}/analysis`);
     return response.data;
   },
 
@@ -63,14 +63,8 @@ export const cvApi = {
     await client.delete(`/cv/${cvUuid}`);
   },
 
-  updateCvSkills: async (cvUuid: string, skills: string[]): Promise<SkillsDTO> => {
-    const response = await client.put(`/cv/${cvUuid}/skills`, { skills });
-    return response.data;
-  },
-
   /**
-   * Get skills for a CV.
-   * The backend returns SkillsDTO { skills: string[] };
+   * Get skills for a CV. The backend returns SkillsDTO { skills: string[] };
    * we normalise to SkillItem[] for the UI.
    */
   getCvSkills: async (cvUuid: string): Promise<SkillItem[]> => {

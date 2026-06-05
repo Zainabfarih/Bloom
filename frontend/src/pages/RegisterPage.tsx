@@ -8,6 +8,7 @@ import { authApi } from '../api/auth.api';
 import { useAuthStore } from '../store/auth.store';
 import { Spinner } from '../components/ui/Spinner';
 import styles from './Auth.module.css';
+import { useQueryClient } from '@tanstack/react-query';
 
 const schema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
@@ -24,6 +25,7 @@ type FormData = z.infer<typeof schema>;
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const setTokens = useAuthStore(s => s.setTokens);
   const setUser   = useAuthStore(s => s.setUser);
   const [serverError, setServerError] = useState('');
@@ -32,13 +34,18 @@ export const RegisterPage = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
+
+  const passwordValue = watch('password') ?? '';
+  const strength = passwordStrength(passwordValue);
 
   const onSubmit = async (data: FormData) => {
     setServerError('');
     try {
       const res = await authApi.register(data);
+      queryClient.clear(); 
       setTokens(res.accessToken, res.refreshToken);
       setUser(res.user);
       navigate('/dashboard', { replace: true });
@@ -142,6 +149,19 @@ export const RegisterPage = () => {
                 <AlertCircle size={12} />{errors.password.message}
               </span>
             )}
+            {passwordValue && (
+              <>
+                <div className={styles.strength} aria-hidden="true">
+                  {[1, 2, 3, 4].map(i => (
+                    <span
+                      key={i}
+                      className={`${styles.strengthBar} ${i <= strength.score ? styles[`on${strength.score}` as const] : ''}`}
+                    />
+                  ))}
+                </div>
+                <span className={styles.strengthLabel}>Password strength: {strength.label}</span>
+              </>
+            )}
           </div>
 
           {serverError && (
@@ -166,3 +186,16 @@ export const RegisterPage = () => {
     </div>
   );
 };
+
+/** Lightweight client-side password strength estimate (0–4). */
+function passwordStrength(pw: string): { score: 0 | 1 | 2 | 3 | 4; label: string } {
+  if (!pw) return { score: 0, label: '' };
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
+  const clamped = Math.min(score, 4) as 0 | 1 | 2 | 3 | 4;
+  const labels = ['Too weak', 'Weak', 'Fair', 'Good', 'Strong'];
+  return { score: clamped, label: labels[clamped] };
+}

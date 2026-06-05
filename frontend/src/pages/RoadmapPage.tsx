@@ -1,20 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Plus, ChevronRight, CheckCircle2, Circle, Clock,
-  ExternalLink, BookOpen, Trash2, X,
+  ExternalLink, BookOpen, X, Briefcase,
 } from 'lucide-react';
 import { roadmapApi } from '../api/roadmap.api';
 import { jobApi } from '../api/job.api';
 import { Spinner } from '../components/ui/Spinner';
+import { useToast } from '../components/ui/Toast';
 import type { RoadmapResponse, StepDTO, StepStatus, SavedJobResponse } from '../types';
 import styles from './RoadmapPage.module.css';
 
 export const RoadmapPage = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showGen, setShowGen] = useState(false);
-  const [targetJobId, setTargetJobId] = useState('');
+  const [targetJobId, setTargetJobId] = useState<number | null>(null);
   const [genError, setGenError] = useState('');
 
   const { data: roadmaps, isLoading } = useQuery<RoadmapResponse[]>({
@@ -22,37 +25,31 @@ export const RoadmapPage = () => {
     queryFn: roadmapApi.getAll,
   });
 
-  /* ─── BUG FIX: keep previous data while refetching to prevent blank panel ─── */
+  /* Keep previous data while refetching so the panel never blanks out. */
   const { data: detail, isLoading: loadingDetail } = useQuery<RoadmapResponse>({
     queryKey: ['roadmap', selectedId],
     queryFn: () => roadmapApi.getById(selectedId!),
     enabled: selectedId !== null,
-    placeholderData: (prev) => prev,   // keeps old data visible during refetch
+    placeholderData: (prev) => prev,
   });
 
-  /* Active roadmap: prefer explicitly-selected detail, else first in list */
   const activeRoadmap = selectedId !== null
     ? (detail ?? roadmaps?.find(r => r.id === selectedId))
     : roadmaps?.[0];
 
   const activeId = selectedId ?? roadmaps?.[0]?.id ?? null;
 
-  /* Saved jobs for the picker */
+  /* Saved jobs — used both for the picker and to resolve the real job title/link. */
   const { data: savedJobs } = useQuery<SavedJobResponse[]>({
     queryKey: ['savedJobs'],
     queryFn: jobApi.getSavedJobs,
-    enabled: showGen,
   });
 
-  const handleGenerate = (e: React.FormEvent) => {
-    e.preventDefault();
-    const id = Number(targetJobId);
-    if (!Number.isNaN(id) && id > 0) {
-      generateMutation.mutate({ targetJobId: id });
-    } else {
-      setGenError('Please select or enter a valid job ID');
-    }
-  };
+  /* Look up a saved job by its id (== roadmap.targetJobId). */
+  const savedJobById = new Map((savedJobs ?? []).map(j => [j.id, j]));
+  /** Real job name for a roadmap — falls back to the stored title if the job was removed. */
+  const titleFor = (r: RoadmapResponse) =>
+    savedJobById.get(r.targetJobId)?.jobTitle ?? r.targetJobTitle;
 
   const generateMutation = useMutation<RoadmapResponse, unknown, { targetJobId: number }>({
     mutationFn: ({ targetJobId }) => roadmapApi.generate({ targetJobId }),
@@ -60,31 +57,36 @@ export const RoadmapPage = () => {
       qc.invalidateQueries({ queryKey: ['roadmaps'] });
       setSelectedId(data.id);
       setShowGen(false);
-      setTargetJobId('');
+      setTargetJobId(null);
       setGenError('');
+      toast.success('Roadmap generated');
     },
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { message?: string } } };
-      setGenError(error?.response?.data?.message ?? 'Generation failed');
+      const msg = error?.response?.data?.message ?? 'Generation failed. Please try again.';
+      setGenError(msg);
+      toast.error(msg);
     },
   });
 
   const statusMutation = useMutation({
     mutationFn: ({ stepId, status }: { stepId: number; status: StepStatus }) =>
-      roadmapApi.updateStepStatus(stepId.toString(), status),
+      roadmapApi.updateStepStatus(stepId, status),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['roadmap', activeId] });
       qc.invalidateQueries({ queryKey: ['roadmaps'] });
     },
+    onError: () => toast.error('Could not update step. Please try again.'),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (roadmapId: number) => roadmapApi.deleteRoadmap(roadmapId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['roadmaps'] });
-      setSelectedId(null);
-    },
-  });
+  const handleGenerate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (targetJobId && targetJobId > 0) {
+      generateMutation.mutate({ targetJobId });
+    } else {
+      setGenError('Please select a saved job first.');
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -93,65 +95,55 @@ export const RoadmapPage = () => {
           <h1 className="section-title">Learning Roadmaps</h1>
           <p className="section-subtitle">Your personalised skill progression paths</p>
         </div>
-        <button
-          className="btn btn--primary"
-          onClick={() => setShowGen(v => !v)}
-        >
+        <button className="btn btn--primary" onClick={() => { setShowGen(v => !v); setGenError(''); }}>
           {showGen ? <X size={15} /> : <Plus size={15} />}
           {showGen ? 'Cancel' : 'Generate Roadmap'}
         </button>
       </div>
 
-      {/* Generate form */}
       {showGen && (
         <div className={`card ${styles.genCard}`}>
           <h3 className={styles.genTitle}>Generate a new roadmap</h3>
           <p className={styles.genSubtitle}>
-            Select a saved job or enter a job ID to generate a personalised learning path.
+            Pick one of your saved jobs — we'll map the skills you're missing into a step-by-step path.
           </p>
           <form onSubmit={handleGenerate} className={styles.genForm}>
-            {savedJobs && savedJobs.length > 0 ? (
-              <div className={styles.jobPicker}>
-                <p className={styles.genLabel}>Pick from saved jobs</p>
+            {!savedJobs ? (
+              <Spinner center />
+            ) : savedJobs.length === 0 ? (
+              <div className={styles.genEmpty}>
+                <Briefcase size={28} color="var(--text-3)" />
+                <p>You haven't saved any jobs yet. Save a job first, then come back to generate a roadmap.</p>
+              </div>
+            ) : (
+              <>
                 <div className={styles.savedJobList}>
                   {savedJobs.map(job => (
                     <button
-                      key={job.uuid}
+                      key={job.id}
                       type="button"
-                      className={`${styles.savedJobBtn} ${
-                        targetJobId === String(job.jobExternalId) ? styles.savedJobBtnActive : ''
-                      }`}
-                      onClick={() => setTargetJobId(job.jobExternalId)}
+                      className={`${styles.savedJobBtn} ${targetJobId === job.id ? styles.savedJobBtnActive : ''}`}
+                      onClick={() => { setTargetJobId(job.id); setGenError(''); }}
+                      aria-pressed={targetJobId === job.id}
                     >
                       <span className={styles.savedJobTitle}>{job.jobTitle}</span>
                       <span className={styles.savedJobCompany}>{job.jobCompany}</span>
+                      {job.missingSkills?.length > 0 && (
+                        <span className={styles.savedJobGap}>{job.missingSkills.length} skills to learn</span>
+                      )}
                     </button>
                   ))}
                 </div>
-                <div className={styles.genDivider}>
-                  <span>or enter ID manually</span>
-                </div>
-              </div>
-            ) : null}
-
-            <div className={styles.genRow}>
-              <div className={`field ${styles.fieldGrow}`}>
-                <label>Job ID</label>
-                <input
-                  value={targetJobId}
-                  onChange={e => setTargetJobId(e.target.value)}
-                  placeholder="e.g. 42"
-                />
-              </div>
-              <button
-                type="submit"
-                className="btn btn--primary"
-                disabled={!targetJobId.trim() || generateMutation.isPending}
-              >
-                {generateMutation.isPending ? <Spinner size={16} color="#fff" /> : 'Generate'}
-              </button>
-            </div>
-            {genError && <p className={styles.genError}>{genError}</p>}
+                <button
+                  type="submit"
+                  className="btn btn--primary"
+                  disabled={!targetJobId || generateMutation.isPending}
+                >
+                  {generateMutation.isPending ? <Spinner size={16} color="#fff" /> : 'Generate roadmap'}
+                </button>
+              </>
+            )}
+            {genError && <p className={styles.genError} role="alert">{genError}</p>}
           </form>
         </div>
       )}
@@ -162,19 +154,15 @@ export const RoadmapPage = () => {
         <div className={styles.empty}>
           <BookOpen size={40} color="var(--text-3)" />
           <p>No roadmaps yet.</p>
-          <button
-            className="btn btn--primary"
-            onClick={() => setShowGen(true)}
-          >
+          <button className="btn btn--primary" onClick={() => setShowGen(true)}>
             <Plus size={15} /> Generate your first roadmap
           </button>
         </div>
       ) : (
         <div className={styles.layout}>
-          {/* Sidebar list */}
           <div className={styles.roadmapList}>
             {roadmaps.map(r => {
-              const done  = r.steps.filter(s => s.status === 'COMPLETED').length;
+              const done  = r.steps.filter(s => isDone(s.status)).length;
               const total = r.steps.length;
               const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
               const isActive = activeId === r.id;
@@ -184,9 +172,10 @@ export const RoadmapPage = () => {
                   key={r.id}
                   className={`${styles.roadmapItem} ${isActive ? styles.roadmapItemActive : ''}`}
                   onClick={() => setSelectedId(r.id)}
+                  aria-current={isActive}
                 >
                   <div className={styles.roadmapItemHeader}>
-                    <span className={styles.roadmapItemTitle}>{r.targetJobTitle}</span>
+                    <span className={styles.roadmapItemTitle}>{titleFor(r)}</span>
                     <ChevronRight size={14} />
                   </div>
                   <div className={styles.miniBar}>
@@ -198,19 +187,16 @@ export const RoadmapPage = () => {
             })}
           </div>
 
-          {/* Steps detail */}
           <div className={styles.stepsPanel}>
             {loadingDetail && !activeRoadmap ? (
               <Spinner center />
             ) : activeRoadmap ? (
               <RoadmapDetail
                 roadmap={activeRoadmap}
-                onStatusChange={(stepId, status) =>
-                  statusMutation.mutate({ stepId, status })
-                }
-                onDelete={() => deleteMutation.mutate(activeRoadmap.id)}
+                jobTitle={titleFor(activeRoadmap)}
+                savedJob={savedJobById.get(activeRoadmap.targetJobId)}
+                onStatusChange={(stepId, status) => statusMutation.mutate({ stepId, status })}
                 updating={statusMutation.isPending}
-                deleting={deleteMutation.isPending}
               />
             ) : null}
           </div>
@@ -220,30 +206,40 @@ export const RoadmapPage = () => {
   );
 };
 
-// ── Status cycle ──────────────────────────────────────────────────────
-const STATUS_CYCLE: Record<StepStatus, StepStatus> = {
-  NOT_STARTED: 'IN_PROGRESS',
-  IN_PROGRESS:  'COMPLETED',
-  COMPLETED:    'NOT_STARTED',
+// ── Status helpers (mirror backend StepStatus enum) ───────────────────
+const isDone = (s: StepStatus) => s === 'COMPLETED' || s === 'ACCEPTED';
+
+const nextStatus = (s: StepStatus): StepStatus => {
+  switch (s) {
+    case 'PENDING':     return 'IN_PROGRESS';
+    case 'IN_PROGRESS': return 'COMPLETED';
+    case 'COMPLETED':
+    case 'ACCEPTED':    return 'PENDING';
+    case 'REJECTED':    return 'IN_PROGRESS';
+    default:            return 'IN_PROGRESS';
+  }
 };
 
+const statusLabel = (s: StepStatus) =>
+  s.charAt(0) + s.slice(1).toLowerCase().replace('_', ' ');
+
 const StepIcon = ({ status }: { status: StepStatus }) => {
-  if (status === 'COMPLETED')   return <CheckCircle2 size={20} color="var(--green)" />;
+  if (isDone(status))            return <CheckCircle2 size={20} color="var(--green)" />;
   if (status === 'IN_PROGRESS') return <Clock size={20} color="var(--yellow)" />;
   return <Circle size={20} color="var(--text-3)" />;
 };
 
 // ── Roadmap Detail ────────────────────────────────────────────────────
 const RoadmapDetail = ({
-  roadmap, onStatusChange, onDelete, updating, deleting,
+  roadmap, jobTitle, savedJob, onStatusChange, updating,
 }: {
   roadmap: RoadmapResponse;
+  jobTitle: string;
+  savedJob?: SavedJobResponse;
   onStatusChange: (stepId: number, status: StepStatus) => void;
-  onDelete: () => void;
   updating: boolean;
-  deleting: boolean;
 }) => {
-  const done  = roadmap.steps.filter(s => s.status === 'COMPLETED').length;
+  const done  = roadmap.steps.filter(s => isDone(s.status)).length;
   const total = roadmap.steps.length;
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
 
@@ -251,20 +247,31 @@ const RoadmapDetail = ({
     <div>
       <div className={styles.detailHeader}>
         <div>
-          <h2 className={styles.detailTitle}>{roadmap.targetJobTitle}</h2>
-          <p className={styles.detailMeta}>{done}/{total} steps completed</p>
+          <h2 className={styles.detailTitle}>{jobTitle}</h2>
+          <p className={styles.detailMeta}>
+            {savedJob?.jobCompany ? `${savedJob.jobCompany} · ` : ''}{done}/{total} steps completed
+          </p>
         </div>
-        <button
-          className="btn btn--danger btn--sm"
-          onClick={onDelete}
-          disabled={deleting}
-          title="Delete roadmap"
-        >
-          {deleting ? <Spinner size={14} /> : <Trash2 size={14} />}
-        </button>
+
+        {savedJob && (
+          savedJob.jobApplyUrl ? (
+            <a
+              className="btn btn--soft btn--sm"
+              href={savedJob.jobApplyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open the job posting"
+            >
+              <Briefcase size={13} /> View job <ExternalLink size={12} />
+            </a>
+          ) : (
+            <Link className="btn btn--soft btn--sm" to="/jobs" title="Go to your saved jobs">
+              <Briefcase size={13} /> View job
+            </Link>
+          )
+        )}
       </div>
 
-      {/* Progress bar */}
       <div className={styles.progressRow}>
         <div className={styles.progressBar}>
           <div className={styles.progressFill} style={{ width: `${pct}%` }} />
@@ -272,7 +279,6 @@ const RoadmapDetail = ({
         <span className={styles.progressPct}>{pct}%</span>
       </div>
 
-      {/* Steps */}
       <div className={styles.stepsList}>
         {[...roadmap.steps]
           .sort((a, b) => a.orderIndex - b.orderIndex)
@@ -281,7 +287,7 @@ const RoadmapDetail = ({
               key={step.id}
               step={step}
               index={i + 1}
-              onToggle={() => onStatusChange(step.id, STATUS_CYCLE[step.status])}
+              onToggle={() => onStatusChange(step.id, nextStatus(step.status))}
               disabled={updating}
             />
           ))}
@@ -302,8 +308,8 @@ const StepCard = ({
   const [expanded, setExpanded] = useState(false);
 
   const statusClass =
-    step.status === 'COMPLETED'   ? styles.stepCompleted :
-    step.status === 'IN_PROGRESS' ? styles.stepInProgress : '';
+    isDone(step.status)            ? styles.stepCompleted :
+    step.status === 'IN_PROGRESS'  ? styles.stepInProgress : '';
 
   return (
     <div className={`${styles.stepCard} ${statusClass}`}>
@@ -311,7 +317,7 @@ const StepCard = ({
         className={styles.stepToggle}
         onClick={onToggle}
         disabled={disabled}
-        aria-label={`Mark step ${index} as ${STATUS_CYCLE[step.status].toLowerCase().replace('_', ' ')}`}
+        aria-label={`Mark "${step.title}" as ${statusLabel(nextStatus(step.status))}`}
       >
         <StepIcon status={step.status} />
       </button>
@@ -324,10 +330,10 @@ const StepCard = ({
               <span className={styles.stepDuration}>{step.estimatedDuration}</span>
             )}
             <span className={`badge ${
-              step.status === 'COMPLETED'   ? 'badge--green' :
+              isDone(step.status)           ? 'badge--green' :
               step.status === 'IN_PROGRESS' ? 'badge--yellow' : ''
             }`}>
-              {step.status.replace('_', ' ')}
+              {statusLabel(step.status)}
             </span>
           </div>
         </div>
@@ -340,17 +346,13 @@ const StepCard = ({
               {step.description}
             </p>
             {step.description.length > 120 && (
-              <button
-                className={styles.expandBtn}
-                onClick={() => setExpanded(v => !v)}
-              >
+              <button className={styles.expandBtn} onClick={() => setExpanded(v => !v)}>
                 {expanded ? 'Show less' : 'Read more'}
               </button>
             )}
           </>
         )}
 
-        {/* Resources */}
         {step.resources && step.resources.length > 0 && (
           <div className={styles.resources}>
             {step.resources.map(r => (
