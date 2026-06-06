@@ -15,7 +15,6 @@ resources:
   - 30-api-gateway.yaml
   - 31-admin-server.yaml
   - 35-frontend.yaml
-  - 40-ingress.yaml
 
 # ConfigMap servie par le config-server (profil native)
 configMapGenerator:
