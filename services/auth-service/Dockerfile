@@ -17,5 +17,5 @@ RUN apk add --no-cache curl \
  && addgroup -S bloom && adduser -S bloom -G bloom
 COPY --from=build /app/target/*.jar app.jar
 USER bloom
-EXPOSE 8761
+EXPOSE 8081
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

@@ -1,0 +1,68 @@
+# config-server (Spring Cloud Config, profil native)
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-server
+  namespace: bloom
+  labels:
+    app: config-server
+spec:
+  selector:
+    app: config-server
+  ports:
+    - port: 8888
+      targetPort: 8888
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+  namespace: bloom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+    spec:
+      containers:
+        - name: config-server
+          image: bloom/config-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+          env:
+            - name: CONFIG_SERVER_PROFILE
+              valueFrom:
+                configMapKeyRef: { name: bloom-config, key: CONFIG_SERVER_PROFILE }
+            - name: CONFIG_REPO_PATH
+              value: /config-repo
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef: { name: bloom-config, key: EUREKA_URI }
+          volumeMounts:
+            - name: config-repo
+              mountPath: /config-repo
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8888
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            failureThreshold: 15
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8888
+            initialDelaySeconds: 70
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+      volumes:
+        - name: config-repo
+          configMap:
+            name: config-repo-files

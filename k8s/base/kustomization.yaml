@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: bloom
+
+resources:
+  - 00-namespace.yaml
+  - 01-config.yaml
+  - 10-discovery-server.yaml
+  - 11-config-server.yaml
+  - 20-job-service.yaml
+  - 21-cv-service.yaml
+  - 22-auth-service.yaml
+  - 23-roadmap-service.yaml
+  - 30-api-gateway.yaml
+  - 31-admin-server.yaml
+  - 35-frontend.yaml
+  - 40-ingress.yaml
+
+# ConfigMap servie par le config-server (profil native)
+configMapGenerator:
+  - name: config-repo-files
+    options:
+      disableNameSuffixHash: true
+    files:
+      - application.yaml=../../config-repo/application.yaml
+      - cv-service.yaml=../../config-repo/cv-service.yaml
+      - job-service.yaml=../../config-repo/job-service.yaml
+      - roadmap-service.yaml=../../config-repo/roadmap-service.yaml
+      - auth-service.yaml=../../config-repo/auth-service.yaml

@@ -1,42 +1,14 @@
-# =====================================================================
-#  Bloom — Orchestration Docker Compose (environnement LOCAL / DEV)
-# =====================================================================
-#  Lancement :   docker compose up -d --build
-#  Logs     :   docker compose logs -f job-service
-#  Arret    :   docker compose down            (garde les donnees)
-#  Reset DB :   docker compose down -v          (supprime les volumes)
-#
-#  Ordre de demarrage gere par les "healthcheck" + "depends_on" :
-#    postgres / redis  ->  discovery-server + config-server
-#                      ->  services (job, cv)  ->  api-gateway + admin
-#
-#  PERIMETRE :
-#   - Pris en charge ici : infra globale + job-service + cv-service
-#   - auth-service / roadmap-service (binome) : voir profil "partner" en bas
-# =====================================================================
-
 name: bloom
 
-# ---------------------------------------------------------------------
-#  Reseau commun : tous les conteneurs se voient par leur NOM de service
-#  (ex: http://config-server:8888, jdbc:postgresql://postgres:5432/...)
-# ---------------------------------------------------------------------
 networks:
   bloom-net:
     driver: bridge
 
-# ---------------------------------------------------------------------
-#  Volumes nommes : les donnees survivent aux "docker compose down"
-# ---------------------------------------------------------------------
 volumes:
   postgres-data:
   redis-data:
 
 services:
-
-  # ===================================================================
-  #  1) BASES DE DONNEES & CACHE
-  # ===================================================================
 
   postgres:
     image: postgres:16-alpine
@@ -44,13 +16,11 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-bloom}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bloom}
-      # Base creee par defaut ; les bases par service sont creees par init.sql
       POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      # Script execute UNE fois au premier demarrage : cree bloom_jobs + bloom_cv
       - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bloom}"]
@@ -76,11 +46,6 @@ services:
     networks:
       - bloom-net
 
-  # ===================================================================
-  #  2) INFRASTRUCTURE SPRING CLOUD
-  # ===================================================================
-
-  # --- Eureka : annuaire des services ---------------------------------
   discovery-server:
     build:
       context: ./infrastructure/discovery-server
@@ -97,19 +62,16 @@ services:
     networks:
       - bloom-net
 
-  # --- Config Server : configuration centralisee (profil NATIVE) ------
   config-server:
     build:
       context: ./infrastructure/config-server
     image: bloom/config-server:latest
     container_name: bloom-config
     environment:
-      # Profil "native" = lit les fichiers du dossier monte ci-dessous
       CONFIG_SERVER_PROFILE: native
       CONFIG_REPO_PATH: /config-repo
       EUREKA_URI: http://discovery-server:8761/eureka/
     volumes:
-      # On monte le dossier config-repo du repo dans le conteneur (lecture seule)
       - ./config-repo:/config-repo:ro
     ports:
       - "8888:8888"
@@ -125,29 +87,20 @@ services:
     networks:
       - bloom-net
 
-  # ===================================================================
-  #  3) MICROSERVICES METIER (mon perimetre : job + cv)
-  # ===================================================================
-
-  # --- Job Service ----------------------------------------------------
   job-service:
     build:
       context: ./services/job-service
     image: bloom/job-service:latest
     container_name: bloom-job
     environment:
-      # -- Cablage infra (surcharge le localhost code en dur) --
       CONFIG_SERVER_URL: http://config-server:8888
       CONFIG_SERVER_PROFILE: native
       EUREKA_URI: http://discovery-server:8761/eureka/
       ADMIN_SERVER_URL: http://admin-server:8090
-      # -- Base de donnees (conteneur postgres) --
       DB_JOB_URL: jdbc:postgresql://postgres:5432/bloom_jobs
       DB_JOB_USERNAME: ${POSTGRES_USER:-bloom}
       DB_JOB_PASSWORD: ${POSTGRES_PASSWORD:-bloom}
-      # -- Cache Redis (conteneur redis) --
       REDIS_URL: redis://redis:6379
-      # -- Secrets & cles (depuis le fichier .env) --
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
       SKILL_EXTRACTOR_HF_MODEL_URL: ${SKILL_EXTRACTOR_HF_MODEL_URL:-}
@@ -174,7 +127,6 @@ services:
     networks:
       - bloom-net
 
-  # --- CV Service -----------------------------------------------------
   cv-service:
     build:
       context: ./services/cv-service
@@ -210,11 +162,6 @@ services:
     networks:
       - bloom-net
 
-  # ===================================================================
-  #  4) PASSERELLE & SUPERVISION
-  # ===================================================================
-
-  # --- API Gateway : point d'entree unique (port 8080) ----------------
   api-gateway:
     build:
       context: ./infrastructure/api-gateway
@@ -235,7 +182,6 @@ services:
     networks:
       - bloom-net
 
-  # --- Admin Server : monitoring des services (port 8090) -------------
   admin-server:
     build:
       context: ./infrastructure/admin-server
@@ -246,67 +192,6 @@ services:
     ports:
       - "8090:8090"
     depends_on:
-      discovery-server:
-        condition: service_started
-    networks:
-      - bloom-net
-
-  # ===================================================================
-  #  5) SERVICES DU BINOME (auth + roadmap) — PROFIL "partner"
-  # ===================================================================
-  #  Ne demarrent PAS par defaut. Pour les inclure (une fois que le
-  #  binome aura ajoute leurs Dockerfiles) :
-  #        docker compose --profile partner up -d --build
-  # -------------------------------------------------------------------
-
-  auth-service:
-    profiles: ["partner"]
-    build:
-      context: ./services/auth-service   # <- Dockerfile a fournir par le binome
-    image: bloom/auth-service:latest
-    container_name: bloom-auth
-    environment:
-      EUREKA_URI: http://discovery-server:8761/eureka/
-      JWT_SECRET: ${JWT_SECRET}
-      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
-      DB_AUTH_USER: ${DB_AUTH_USER:-}
-      DB_AUTH_PASS: ${DB_AUTH_PASS:-}
-      MAIL_HOST: ${MAIL_HOST:-}
-      MAIL_USER: ${MAIL_USER:-}
-      MAIL_PASS: ${MAIL_PASS:-}
-      FRONTEND_URL: ${FRONTEND_URL:-}
-    ports:
-      - "8081:8081"
-    depends_on:
-      discovery-server:
-        condition: service_started
-    networks:
-      - bloom-net
-
-  roadmap-service:
-    profiles: ["partner"]
-    build:
-      context: ./services/roadmap-service   # <- Dockerfile a fournir par le binome
-    image: bloom/roadmap-service:latest
-    container_name: bloom-roadmap
-    environment:
-      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
-      CONFIG_SERVER_PROFILE: native
-      EUREKA_URI: http://discovery-server:8761/eureka/
-      DB_ROADMAP_URL: jdbc:postgresql://postgres:5432/bloom_roadmap
-      DB_ROADMAP_USERNAME: ${POSTGRES_USER:-bloom}
-      DB_ROADMAP_PASSWORD: ${POSTGRES_PASSWORD:-bloom}
-      JWT_SECRET: ${JWT_SECRET}
-      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
-      GEMINI_API_KEY_ROADMAP: ${GEMINI_API_KEY_ROADMAP:-}
-      GEMINI_MODEL_ROADMAP: ${GEMINI_MODEL_ROADMAP:-}
-    ports:
-      - "8085:8085"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
       discovery-server:
         condition: service_started
     networks:

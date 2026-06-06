@@ -1,0 +1,110 @@
+# =====================================================================
+#  auth-service
+# =====================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: bloom
+  labels:
+    app: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - port: 8081
+      targetPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: bloom
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+        - name: auth-service
+          image: bloom/auth-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          env:
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef: { name: bloom-config, key: EUREKA_URI }
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef: { name: bloom-config, key: FRONTEND_URL }
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef: { name: bloom-secrets, key: JWT_SECRET }
+            - name: INTERNAL_GATEWAY_SECRET
+              valueFrom:
+                secretKeyRef: { name: bloom-secrets, key: INTERNAL_GATEWAY_SECRET }
+            - name: DB_AUTH_URL
+              valueFrom:
+                secretKeyRef: { name: bloom-secrets, key: DB_AUTH_URL }
+            - name: DB_AUTH_USER
+              valueFrom:
+                secretKeyRef: { name: bloom-secrets, key: DB_AUTH_USER }
+            - name: DB_AUTH_PASS
+              valueFrom:
+                secretKeyRef: { name: bloom-secrets, key: DB_AUTH_PASS }
+            - name: MAIL_HOST
+              valueFrom:
+                secretKeyRef: { name: bloom-secrets, key: MAIL_HOST }
+            - name: MAIL_USER
+              valueFrom:
+                secretKeyRef: { name: bloom-secrets, key: MAIL_USER }
+            - name: MAIL_PASS
+              valueFrom:
+                secretKeyRef: { name: bloom-secrets, key: MAIL_PASS }
+          # Sondes HTTP via Actuator
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits:   { cpu: "1000m", memory: "768Mi" }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: auth-service
+  namespace: bloom
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
