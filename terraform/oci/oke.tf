@@ -15,7 +15,7 @@ locals {
     )
   ]
 
-  node_shape = var.node_arch == "arm" ? "VM.Standard.A1.Flex" : "VM.Standard.E4.Flex"
+  node_shape = var.node_arch == "arm" ? "VM.Standard.A1.Flex" : "VM.Standard.E5.Flex"
 }
 
 data "oci_identity_availability_domains" "ads" {
