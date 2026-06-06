@@ -7,6 +7,5 @@ data:
   CONFIG_SERVER_URL: "http://config-server:8888"
   EUREKA_URI: "http://discovery-server:8761/eureka/"
   ADMIN_SERVER_URL: "http://admin-server:8090"
-  CONFIG_SERVER_PROFILE: "native"
   GEMINI_MODEL_ROADMAP: "gemini-3.5-flash"
   FRONTEND_URL: "http://bloom.local"
