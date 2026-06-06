@@ -36,16 +36,15 @@ spec:
             - containerPort: 8888
           env:
             - name: CONFIG_SERVER_PROFILE
-              value: "git"
+              value: "native"
+            - name: CONFIG_REPO_PATH
+              value: /config-repo
             - name: EUREKA_URI
               valueFrom:
                 configMapKeyRef: { name: bloom-config, key: EUREKA_URI }
-            - name: GITHUB_USERNAME
-              valueFrom:
-                secretKeyRef: { name: bloom-secrets, key: GITHUB_USERNAME }
-            - name: GITHUB_TOKEN
-              valueFrom:
-                secretKeyRef: { name: bloom-secrets, key: GITHUB_TOKEN }
+          volumeMounts:
+            - name: config-repo
+              mountPath: /config-repo
           readinessProbe:
             httpGet:
               path: /actuator/health
@@ -62,3 +61,7 @@ spec:
           resources:
             requests: { cpu: "100m", memory: "256Mi" }
             limits:   { cpu: "500m", memory: "512Mi" }
+      volumes:
+        - name: config-repo
+          configMap:
+            name: config-repo-files
