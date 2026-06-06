@@ -1,6 +1,21 @@
 locals {
-  # "v1.33.1" -> "1.33.1" (version exacte pour matcher l'image worker OKE)
   k8s_clean = replace(var.kubernetes_version, "v", "")
+
+  # Images OKE de la bonne version K8s, hors GPU
+  oke_images = [
+    for s in data.oci_containerengine_node_pool_option.options.sources :
+    s if can(regex("OKE-${local.k8s_clean}-", s.source_name)) && !can(regex("GPU", s.source_name))
+  ]
+
+  # Filtre par architecture : ARM = nom contient "aarch64", AMD = ne le contient pas
+  arch_images = [
+    for s in local.oke_images :
+    s.image_id if(
+      var.node_arch == "arm" ? can(regex("aarch64", s.source_name)) : !can(regex("aarch64", s.source_name))
+    )
+  ]
+
+  node_shape = var.node_arch == "arm" ? "VM.Standard.A1.Flex" : "VM.Standard.E4.Flex"
 }
 
 data "oci_identity_availability_domains" "ads" {
@@ -38,7 +53,7 @@ resource "oci_containerengine_node_pool" "bloom_workers" {
   cluster_id         = oci_containerengine_cluster.bloom.id
   name               = "${var.cluster_name}-pool"
   kubernetes_version = var.kubernetes_version
-  node_shape         = var.node_pool_shape
+  node_shape         = local.node_shape
 
   node_shape_config {
     ocpus         = var.node_ocpus
@@ -47,20 +62,17 @@ resource "oci_containerengine_node_pool" "bloom_workers" {
 
   node_source_details {
     source_type = "IMAGE"
-    image_id = (
-      var.node_image_ocid != "" ? var.node_image_ocid :
-      [for s in data.oci_containerengine_node_pool_option.options.sources :
-        s.image_id
-        if can(regex("aarch64", s.source_name)) && can(regex("OKE-${local.k8s_clean}-", s.source_name))
-      ][0]
-    )
+    image_id    = var.node_image_ocid != "" ? var.node_image_ocid : local.arch_images[0]
   }
 
   node_config_details {
     size = var.node_count
-    placement_configs {
-      availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
-      subnet_id           = oci_core_subnet.workers.id
+    dynamic "placement_configs" {
+      for_each = data.oci_identity_availability_domains.ads.availability_domains
+      content {
+        availability_domain = placement_configs.value.name
+        subnet_id           = oci_core_subnet.workers.id
+      }
     }
   }
 

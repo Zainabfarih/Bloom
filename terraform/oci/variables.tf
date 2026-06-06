@@ -22,9 +22,11 @@ variable "kubernetes_version" {
 }
 
 # VM.Standard.A1.Flex = ARM Ampere (Always Free)
-variable "node_pool_shape" {
+# "arm" -> A1.Flex (Always Free, souvent "out of capacity")
+# "amd" -> E4.Flex (couvert par les credits du free trial, capacite fiable)
+variable "node_arch" {
   type    = string
-  default = "VM.Standard.A1.Flex"
+  default = "arm"
 }
 
 variable "node_count" {
