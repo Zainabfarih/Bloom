@@ -22,6 +22,20 @@ data "oci_identity_availability_domains" "ads" {
   compartment_id = var.tenancy_ocid
 }
 
+# Shapes disponibles dans chaque AD -> on ne garde que les AD qui offrent notre shape
+data "oci_core_shapes" "by_ad" {
+  for_each            = { for ad in data.oci_identity_availability_domains.ads.availability_domains : ad.name => ad.name }
+  compartment_id      = var.compartment_ocid
+  availability_domain = each.value
+}
+
+locals {
+  valid_ads = [
+    for ad_name, sh in data.oci_core_shapes.by_ad :
+    ad_name if contains([for s in sh.shapes : s.name], local.node_shape)
+  ]
+}
+
 data "oci_containerengine_node_pool_option" "options" {
   node_pool_option_id = "all"
   compartment_id      = var.compartment_ocid
@@ -68,9 +82,9 @@ resource "oci_containerengine_node_pool" "bloom_workers" {
   node_config_details {
     size = var.node_count
     dynamic "placement_configs" {
-      for_each = data.oci_identity_availability_domains.ads.availability_domains
+      for_each = local.valid_ads
       content {
-        availability_domain = placement_configs.value.name
+        availability_domain = placement_configs.value
         subnet_id           = oci_core_subnet.workers.id
       }
     }
