@@ -39,6 +39,11 @@ spec:
           envFrom:
             - configMapRef: { name: bloom-config }
             - secretRef: { name: bloom-secrets }
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "default"
+            - name: SPRING_CONFIG_IMPORT
+              value: "configserver:http://config-server:8888"
           startupProbe:
             httpGet:
               path: /actuator/health
