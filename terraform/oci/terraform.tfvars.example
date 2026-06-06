@@ -1,6 +1,6 @@
-# Copier en "terraform.tfvars" et remplir (ignore par git).
-tenancy_ocid     = "ocid1.tenancy.oc1..xxxxxxxx"
-compartment_ocid = "ocid1.tenancy.oc1..xxxxxxxx"
+# Copier en "terraform.tfvars" et ajuster si besoin (ignore par git).
+tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaaulous3odv5yx5vcr3tql3vcuovymb625yqfzvsefukr7usqhjauq"
+compartment_ocid = "ocid1.tenancy.oc1..aaaaaaaaulous3odv5yx5vcr3tql3vcuovymb625yqfzvsefukr7usqhjauq"
 region           = "uk-london-1"
 
 cluster_name       = "bloom-oke"
