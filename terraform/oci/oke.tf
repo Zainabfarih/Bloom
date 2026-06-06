@@ -1,6 +1,6 @@
 locals {
-  # "v1.33.1" -> "1.33" (pour matcher le nom des images OKE)
-  k8s_minor = join(".", slice(split(".", replace(var.kubernetes_version, "v", "")), 0, 2))
+  # "v1.33.1" -> "1.33.1" (version exacte pour matcher l'image worker OKE)
+  k8s_clean = replace(var.kubernetes_version, "v", "")
 }
 
 data "oci_identity_availability_domains" "ads" {
@@ -51,7 +51,7 @@ resource "oci_containerengine_node_pool" "bloom_workers" {
       var.node_image_ocid != "" ? var.node_image_ocid :
       [for s in data.oci_containerengine_node_pool_option.options.sources :
         s.image_id
-        if can(regex("aarch64", s.source_name)) && can(regex("OKE-${local.k8s_minor}", s.source_name))
+        if can(regex("aarch64", s.source_name)) && can(regex("OKE-${local.k8s_clean}-", s.source_name))
       ][0]
     )
   }
