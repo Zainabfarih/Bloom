@@ -199,8 +199,6 @@ public class CvService {
     private void deactivateExistingCvs(Long userId) {
         cvRepository.findByUserIdAndActiveTrue(userId).ifPresent(existing -> {
             existing.setActive(false);
-            // Flush avant l'INSERT du nouveau CV actif, sinon l'index partiel
-            // unique uq_cv_user_active est violé.
             cvRepository.saveAndFlush(existing);
         });
     }

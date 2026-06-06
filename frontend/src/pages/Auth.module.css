@@ -1,0 +1,240 @@
+.authPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ambient background orbs */
+.authPage::before {
+  content: '';
+  position: absolute;
+  top: -18%;
+  left: -8%;
+  width: 620px;
+  height: 620px;
+  background: radial-gradient(circle, rgba(139,92,246,0.16) 0%, transparent 68%);
+  pointer-events: none;
+}
+.authPage::after {
+  content: '';
+  position: absolute;
+  bottom: -22%;
+  right: -10%;
+  width: 560px;
+  height: 560px;
+  background: radial-gradient(circle, rgba(236,72,153,0.14) 0%, transparent 68%);
+  pointer-events: none;
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 44px 40px;
+  box-shadow: var(--shadow-lg);
+  animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Brand gradient hairline along the top of the card */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--grad-brand);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 32px;
+}
+
+.logoIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--grad-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: var(--shadow-accent);
+}
+
+.logoName {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: -0.4px;
+}
+
+.subtitle {
+  font-size: 14.5px;
+  color: var(--text-2);
+  margin-bottom: 30px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.passwordField {
+  position: relative;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-3);
+  padding: 6px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.passwordToggle:hover { color: var(--accent-2); background: var(--accent-glow); }
+
+.passwordInput {
+  padding-right: 44px !important;
+}
+
+/* Password strength meter */
+.strength {
+  display: flex;
+  gap: 5px;
+  margin-top: 2px;
+}
+.strengthBar {
+  height: 4px;
+  flex: 1;
+  border-radius: 100px;
+  background: var(--bg-4);
+  transition: background 0.25s;
+}
+.strengthBar.on1 { background: var(--red); }
+.strengthBar.on2 { background: var(--yellow); }
+.strengthBar.on3 { background: var(--accent); }
+.strengthBar.on4 { background: var(--green); }
+.strengthLabel {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 6px;
+}
+
+.serverError {
+  font-size: 13px;
+  color: var(--red);
+  background: var(--red-glow);
+  border: 1px solid rgba(244,63,94,0.22);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  animation: fadeIn 0.2s ease both;
+}
+
+.successMsg {
+  font-size: 13px;
+  color: var(--green);
+  background: var(--green-glow);
+  border: 1px solid rgba(16,185,129,0.22);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  animation: fadeIn 0.2s ease both;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-3);
+  font-size: 12px;
+  margin: 4px 0;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-2);
+}
+
+.footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.footer a {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+.footer a:hover { text-decoration: underline; }
+
+.forgotLink {
+  display: block;
+  text-align: right;
+  font-size: 13px;
+  color: var(--text-3);
+  margin-top: -10px;
+  transition: color 0.15s;
+}
+.forgotLink:hover { color: var(--accent-2); }
+
+/* Success icon used on reset/forgot confirmation */
+.successIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--green-glow);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+}
+
+@media (max-width: 480px) {
+  .card { padding: 32px 24px; }
+  .row { grid-template-columns: 1fr; }
+}
