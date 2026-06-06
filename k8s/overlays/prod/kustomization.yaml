@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: bloom
+
+resources:
+  - ../../base
+
+# Remplacer REGISTRY par le registry cible (OCIR / Artifact Registry).
+images:
+  - name: bloom/discovery-server
+    newName: REGISTRY/bloom-discovery-server
+    newTag: "1.0.0"
+  - name: bloom/config-server
+    newName: REGISTRY/bloom-config-server
+    newTag: "1.0.0"
+  - name: bloom/admin-server
+    newName: REGISTRY/bloom-admin-server
+    newTag: "1.0.0"
+  - name: bloom/api-gateway
+    newName: REGISTRY/bloom-api-gateway
+    newTag: "1.0.0"
+  - name: bloom/cv-service
+    newName: REGISTRY/bloom-cv-service
+    newTag: "1.0.0"
+  - name: bloom/job-service
+    newName: REGISTRY/bloom-job-service
+    newTag: "1.0.0"
+  - name: bloom/auth-service
+    newName: REGISTRY/bloom-auth-service
+    newTag: "1.0.0"
+  - name: bloom/roadmap-service
+    newName: REGISTRY/bloom-roadmap-service
+    newTag: "1.0.0"
+  - name: bloom/frontend
+    newName: REGISTRY/bloom-frontend
+    newTag: "1.0.0"

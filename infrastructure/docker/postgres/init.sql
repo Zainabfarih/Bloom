@@ -1,13 +1,3 @@
--- Base du job-service
-CREATE DATABASE bloom_job;
-
--- Base du cv-service
+-- Bases creees au premier demarrage de PostgreSQL (dev local).
+CREATE DATABASE bloom_jobs;
 CREATE DATABASE bloom_cv;
-
--- Base du auth-service
-CREATE DATABASE bloom_auth;
-
--- Base du roadmap-service
-CREATE DATABASE bloom_roadmap;
-
-

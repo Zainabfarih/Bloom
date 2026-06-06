@@ -1,0 +1,19 @@
+# Binaires des providers (volumineux) + cache
+.terraform/
+.terraform.lock.hcl
+
+# Etat Terraform (peut contenir des donnees sensibles)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Variables reelles (contiennent tes OCID / secrets)
+terraform.tfvars
+*.auto.tfvars
+
+# Plans sauvegardes
+*.tfplan
+
+# Logs de crash
+crash.log
+crash.*.log
