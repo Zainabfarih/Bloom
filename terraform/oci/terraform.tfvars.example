@@ -1,18 +1,13 @@
-# Copier en "terraform.tfvars" et ajuster si besoin (ignore par git).
-tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaaulous3odv5yx5vcr3tql3vcuovymb625yqfzvsefukr7usqhjauq"
-compartment_ocid = "ocid1.tenancy.oc1..aaaaaaaaulous3odv5yx5vcr3tql3vcuovymb625yqfzvsefukr7usqhjauq"
+# Copier en "terraform.tfvars" et remplir (ignore par git).
+tenancy_ocid     = "ocid1.tenancy.oc1..xxxxxxxx"
+compartment_ocid = "ocid1.tenancy.oc1..xxxxxxxx"
 region           = "uk-london-1"
 
 cluster_name       = "bloom-oke"
 kubernetes_version = "v1.33.1"
 
-# Architecture des workers :
-#   "arm" = A1.Flex gratuit (souvent "out of capacity")
-#   "amd" = E4.Flex sur credits du free trial (fiable)
-node_arch = "amd"
-
+# Architecture des workers : "arm" (A1.Flex gratuit) ou "amd" (E5.Flex)
+node_arch       = "amd"
 node_count      = 2
 node_ocpus      = 2
 node_memory_gbs = 16
-
-# ssh_public_key = "ssh-rsa AAAA... toncompte@machine"

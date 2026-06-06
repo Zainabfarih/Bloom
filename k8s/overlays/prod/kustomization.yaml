@@ -6,32 +6,32 @@ namespace: bloom
 resources:
   - ../../base
 
-# Remplacer REGISTRY par le registry cible (OCIR / Artifact Registry).
+# Images OCIR (repos publics)
 images:
   - name: bloom/discovery-server
-    newName: REGISTRY/bloom-discovery-server
+    newName: lhr.ocir.io/lrcic9ephrwp/bloom-discovery-server
     newTag: "1.0.0"
   - name: bloom/config-server
-    newName: REGISTRY/bloom-config-server
+    newName: lhr.ocir.io/lrcic9ephrwp/bloom-config-server
     newTag: "1.0.0"
   - name: bloom/admin-server
-    newName: REGISTRY/bloom-admin-server
+    newName: lhr.ocir.io/lrcic9ephrwp/bloom-admin-server
     newTag: "1.0.0"
   - name: bloom/api-gateway
-    newName: REGISTRY/bloom-api-gateway
+    newName: lhr.ocir.io/lrcic9ephrwp/bloom-api-gateway
     newTag: "1.0.0"
   - name: bloom/cv-service
-    newName: REGISTRY/bloom-cv-service
+    newName: lhr.ocir.io/lrcic9ephrwp/bloom-cv-service
     newTag: "1.0.0"
   - name: bloom/job-service
-    newName: REGISTRY/bloom-job-service
+    newName: lhr.ocir.io/lrcic9ephrwp/bloom-job-service
     newTag: "1.0.0"
   - name: bloom/auth-service
-    newName: REGISTRY/bloom-auth-service
+    newName: lhr.ocir.io/lrcic9ephrwp/bloom-auth-service
     newTag: "1.0.0"
   - name: bloom/roadmap-service
-    newName: REGISTRY/bloom-roadmap-service
+    newName: lhr.ocir.io/lrcic9ephrwp/bloom-roadmap-service
     newTag: "1.0.0"
   - name: bloom/frontend
-    newName: REGISTRY/bloom-frontend
+    newName: lhr.ocir.io/lrcic9ephrwp/bloom-frontend
     newTag: "1.0.0"
