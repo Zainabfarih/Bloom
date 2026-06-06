@@ -72,11 +72,27 @@ resource "oci_core_security_list" "public" {
     protocol    = "all"
   }
   ingress_security_rules {
+    protocol = "1"
+    source   = "10.0.0.0/16"
+    icmp_options {
+      type = 3
+      code = 4
+    }
+  }
+  ingress_security_rules {
     protocol = "6"
     source   = "0.0.0.0/0"
     tcp_options {
       min = 6443
       max = 6443
+    }
+  }
+  ingress_security_rules {
+    protocol = "6"
+    source   = "10.0.0.0/16"
+    tcp_options {
+      min = 12250
+      max = 12250
     }
   }
   ingress_security_rules {
