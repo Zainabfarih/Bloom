@@ -6,9 +6,13 @@ region           = "uk-london-1"
 cluster_name       = "bloom-oke"
 kubernetes_version = "v1.33.1"
 
-# Node pool ARM (Always Free : 4 OCPU / 24 Go max au total)
+# Architecture des workers :
+#   "arm" = A1.Flex gratuit (souvent "out of capacity")
+#   "amd" = E4.Flex sur credits du free trial (fiable)
+node_arch = "amd"
+
 node_count      = 2
 node_ocpus      = 2
-node_memory_gbs = 12
+node_memory_gbs = 16
 
 # ssh_public_key = "ssh-rsa AAAA... toncompte@machine"
