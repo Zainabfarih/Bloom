@@ -1,0 +1,16 @@
+name: Bloom CD — roadmap-service
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/roadmap-service/**'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/cd-reusable.yaml
+    secrets: inherit
+    with:
+      image: bloom-roadmap-service
+      context: services/roadmap-service
+      deployment: roadmap-service

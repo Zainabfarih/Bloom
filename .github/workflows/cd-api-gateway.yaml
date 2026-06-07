@@ -1,0 +1,16 @@
+name: Bloom CD — api-gateway
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/api-gateway/**'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/cd-reusable.yaml
+    secrets: inherit
+    with:
+      image: bloom-api-gateway
+      context: infrastructure/api-gateway
+      deployment: api-gateway

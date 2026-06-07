@@ -1,0 +1,16 @@
+name: Bloom CD — frontend
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/cd-reusable.yaml
+    secrets: inherit
+    with:
+      image: bloom-frontend
+      context: frontend
+      deployment: frontend
