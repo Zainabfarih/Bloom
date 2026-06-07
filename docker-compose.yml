@@ -7,6 +7,7 @@ networks:
 volumes:
   redis-data:
   grafana-data:
+  loki-data:
 
 services:
 
@@ -282,5 +283,30 @@ services:
       - "3001:3000"
     depends_on:
       - prometheus
+    networks:
+      - bloom-net
+
+  # ─── OBSERVABILITE : logs ───────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: bloom-loki
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes:
+      - ./infrastructure/monitoring/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - bloom-net
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: bloom-promtail
+    command: ["-config.file=/etc/promtail/promtail-config.yaml"]
+    volumes:
+      - ./infrastructure/monitoring/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
     networks:
       - bloom-net

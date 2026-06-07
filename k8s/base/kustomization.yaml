@@ -19,6 +19,9 @@ resources:
   - 40-prometheus.yaml
   - 41-grafana.yaml
   - 42-grafana-dashboards.yaml
+  # --- Observabilite : logs ---
+  - 43-loki.yaml
+  - 44-promtail.yaml
 
 # ConfigMap servie au config-server (profil native) depuis config-repo/
 configMapGenerator:
