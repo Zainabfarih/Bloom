@@ -116,6 +116,7 @@ services:
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       CONFIG_SERVER_PROFILE: native
+      SERVER_PORT: "8082"
       EUREKA_URI: http://discovery-server:8761/eureka/
       ADMIN_SERVER_URL: http://admin-server:8090
       ZIPKIN_URL: http://zipkin:9411/api/v2/spans

@@ -24,6 +24,10 @@ scrape_configs:
         labels: { service: job-service }
       - targets: ['cv-service:8082']
         labels: { service: cv-service }
+      - targets: ['auth-service:8081']
+        labels: { service: auth-service }
+      - targets: ['roadmap-service:8085']
+        labels: { service: roadmap-service }
       - targets: ['api-gateway:8080']
         labels: { service: api-gateway }
       - targets: ['admin-server:8090']
