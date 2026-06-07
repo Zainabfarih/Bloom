@@ -4,16 +4,47 @@ server:
 spring:
   application:
     name: auth-service
-  config:
-    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
-  profiles:
-    active: ${CONFIG_SERVER_PROFILE:git}
+  datasource:
+    url: ${DB_AUTH_URL}
+    username: ${DB_AUTH_USER}
+    password: ${DB_AUTH_PASS}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 1
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
   cloud:
     config:
-      fail-fast: true
-      retry:
-        max-attempts: 5
-        initial-interval: 1000
+      enabled: false
+  mail:
+    host: ${MAIL_HOST}
+    port: 587
+    username: ${MAIL_USER}
+    password: ${MAIL_PASS}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 900000
+  refresh-token-expiration: 604800000
+app:
+  password-reset-token-expiration: 3600000
+  frontend-url: ${FRONTEND_URL}
+  max-failed-login-attempts: 5
+
+internal:
+  security:
+    gateway-secret: ${INTERNAL_GATEWAY_SECRET}
 
 eureka:
   client:
