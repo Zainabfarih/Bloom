@@ -40,6 +40,9 @@ spec:
             - name: EUREKA_URI
               valueFrom:
                 configMapKeyRef: { name: bloom-config, key: EUREKA_URI }
+            - name: ZIPKIN_URL
+              valueFrom:
+                configMapKeyRef: { name: bloom-config, key: ZIPKIN_URL }
             - name: FRONTEND_URL
               valueFrom:
                 configMapKeyRef: { name: bloom-config, key: FRONTEND_URL }

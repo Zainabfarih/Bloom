@@ -25,6 +25,12 @@ data:
         access: proxy
         url: http://loki:3100
         editable: true
+      - name: Zipkin
+        type: zipkin
+        uid: zipkin
+        access: proxy
+        url: http://zipkin:9411
+        editable: true
 ---
 apiVersion: v1
 kind: ConfigMap

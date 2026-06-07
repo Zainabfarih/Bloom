@@ -78,6 +78,7 @@ services:
       CONFIG_SERVER_PROFILE: native
       EUREKA_URI: http://discovery-server:8761/eureka/
       ADMIN_SERVER_URL: http://admin-server:8090
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
       # Base de donnees externe (Azure) fournie via .env
       DB_JOB_URL: ${DB_JOB_URL}
       DB_JOB_USERNAME: ${DB_JOB_USERNAME}
@@ -117,6 +118,7 @@ services:
       CONFIG_SERVER_PROFILE: native
       EUREKA_URI: http://discovery-server:8761/eureka/
       ADMIN_SERVER_URL: http://admin-server:8090
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
       # Base de donnees externe (Azure) fournie via .env
       DB_CV_URL: ${DB_CV_URL}
       DB_CV_USERNAME: ${DB_CV_USERNAME}
@@ -149,6 +151,7 @@ services:
     environment:
       EUREKA_URI: http://discovery-server:8761/eureka/
       ADMIN_SERVER_URL: http://admin-server:8090
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
     ports:
@@ -183,6 +186,7 @@ services:
     container_name: bloom-auth
     environment:
       EUREKA_URI: http://discovery-server:8761/eureka/
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
       # Base de donnees externe (Azure / Supabase) fournie via .env
       DB_AUTH_URL: ${DB_AUTH_URL}
       DB_AUTH_USER: ${DB_AUTH_USER}
@@ -217,6 +221,7 @@ services:
       CONFIG_SERVER_PROFILE: native
       EUREKA_URI: http://discovery-server:8761/eureka/
       ADMIN_SERVER_URL: http://admin-server:8090
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
       # Base de donnees externe (Azure / Supabase) fournie via .env
       DB_ROADMAP_URL: ${DB_ROADMAP_URL}
       DB_ROADMAP_USERNAME: ${DB_ROADMAP_USERNAME}
@@ -308,5 +313,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - loki
+    networks:
+      - bloom-net
+
+  # ─── OBSERVABILITE : tracing ────────────────────────────────────────
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: bloom-zipkin
+    environment:
+      STORAGE_TYPE: mem
+    ports:
+      - "9411:9411"
     networks:
       - bloom-net

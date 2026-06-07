@@ -22,6 +22,8 @@ resources:
   # --- Observabilite : logs ---
   - 43-loki.yaml
   - 44-promtail.yaml
+  # --- Observabilite : tracing ---
+  - 45-zipkin.yaml
 
 # ConfigMap servie au config-server (profil native) depuis config-repo/
 configMapGenerator:
