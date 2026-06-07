@@ -37,6 +37,10 @@ spec:
           ports:
             - containerPort: 8081
           env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "default"
+            - name: SPRING_CONFIG_IMPORT
+              value: "configserver:http://config-server:8888"
             - name: EUREKA_URI
               valueFrom:
                 configMapKeyRef: { name: bloom-config, key: EUREKA_URI }

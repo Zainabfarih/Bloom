@@ -4,52 +4,20 @@ server:
 spring:
   application:
     name: auth-service
-  datasource:
-    url: jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require
-    username: ${DB_AUTH_USER}
-    password: ${DB_AUTH_PASS}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 2
-      minimum-idle: 1
-      connection-timeout: 30000
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  profiles:
+    active: ${CONFIG_SERVER_PROFILE:git}
   cloud:
     config:
-      enabled: false
-  mail:
-    host: ${MAIL_HOST}
-    port: 587
-    username: ${MAIL_USER}
-    password: ${MAIL_PASS}
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
-
-jwt:
-  secret: ${JWT_SECRET}
-  access-token-expiration: 900000      # 15min
-  refresh-token-expiration: 604800000  # 7j
-app:
-  password-reset-token-expiration: 3600000 # 1 hour
-  frontend-url: ${FRONTEND_URL}
-  max-failed-login-attempts: 5
+      fail-fast: true
+      retry:
+        max-attempts: 5
+        initial-interval: 1000
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
-    # Optionnel : Si vous testez sans lancer votre Eureka Server, mettez ces deux lignes à 'false' pour éviter les erreurs rouges au démarrage :
-      fetch-registry: false
-      register-with-eureka: false
-
-logging:
-  level:
-    org.springframework.security: TRACE
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    fetch-registry: false
+    register-with-eureka: false
