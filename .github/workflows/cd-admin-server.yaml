@@ -1,0 +1,16 @@
+name: Bloom CD — admin-server
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/admin-server/**'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/cd-reusable.yaml
+    secrets: inherit
+    with:
+      image: bloom-admin-server
+      context: infrastructure/admin-server
+      deployment: admin-server

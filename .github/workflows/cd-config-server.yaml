@@ -1,0 +1,16 @@
+name: Bloom CD — config-server
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/config-server/**'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/cd-reusable.yaml
+    secrets: inherit
+    with:
+      image: bloom-config-server
+      context: infrastructure/config-server
+      deployment: config-server

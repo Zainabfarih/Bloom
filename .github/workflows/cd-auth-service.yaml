@@ -1,0 +1,16 @@
+name: Bloom CD — auth-service
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/auth-service/**'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/cd-reusable.yaml
+    secrets: inherit
+    with:
+      image: bloom-auth-service
+      context: services/auth-service
+      deployment: auth-service
