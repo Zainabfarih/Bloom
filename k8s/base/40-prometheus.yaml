@@ -1,0 +1,112 @@
+# =====================================================================
+#  Prometheus  -  collecte des metriques /actuator/prometheus
+# =====================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: bloom
+  labels:
+    app: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: bloom
+
+    scrape_configs:
+      # Prometheus se scrape lui-meme
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      # Tous les microservices Spring Boot exposent /actuator/prometheus
+      - job_name: 'bloom-microservices'
+        metrics_path: /actuator/prometheus
+        scrape_interval: 15s
+        static_configs:
+          - targets: ['discovery-server:8761']
+            labels: { service: discovery-server }
+          - targets: ['config-server:8888']
+            labels: { service: config-server }
+          - targets: ['auth-service:8081']
+            labels: { service: auth-service }
+          - targets: ['cv-service:8082']
+            labels: { service: cv-service }
+          - targets: ['job-service:8083']
+            labels: { service: job-service }
+          - targets: ['roadmap-service:8085']
+            labels: { service: roadmap-service }
+          - targets: ['api-gateway:8080']
+            labels: { service: api-gateway }
+          - targets: ['admin-server:8090']
+            labels: { service: admin-server }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: bloom
+  labels:
+    app: prometheus
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: bloom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.54.1
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--storage.tsdb.retention.time=15d"
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: data
+              mountPath: /prometheus
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        # emptyDir : les donnees sont perdues au redemarrage du pod.
+        # Pour de la persistance prod, remplacer par un PersistentVolumeClaim.
+        - name: data
+          emptyDir: {}

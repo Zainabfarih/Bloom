@@ -34,6 +34,7 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/actuator",
                                 "/actuator/metrics",
+                                "/actuator/prometheus",
                                 "/actuator/loggers",
                                 "/actuator/info"
                         ).permitAll()

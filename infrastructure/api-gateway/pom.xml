@@ -76,6 +76,16 @@
 			<version>${spring-boot-admin.version}</version>
 		</dependency>
 
+		<!-- Actuator + Micrometer : expose /actuator/prometheus -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<dependencyManagement>
