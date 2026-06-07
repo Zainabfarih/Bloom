@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'services/auth-service/**'
+  workflow_dispatch:
 
 jobs:
   deploy:

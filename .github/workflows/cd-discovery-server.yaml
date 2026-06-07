@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'infrastructure/discovery-server/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
