@@ -38,6 +38,8 @@ spec:
             - configMapRef: { name: bloom-config }
             - secretRef: { name: bloom-secrets }
           env:
+            - name: SERVER_PORT
+              value: "8082"
             - name: SPRING_PROFILES_ACTIVE
               value: "default"
             - name: SPRING_CONFIG_IMPORT
