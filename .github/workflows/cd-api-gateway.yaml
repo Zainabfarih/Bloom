@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'infrastructure/api-gateway/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
