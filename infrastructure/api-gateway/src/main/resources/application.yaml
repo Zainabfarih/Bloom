@@ -5,29 +5,25 @@ spring:
     gateway:
       server:
         webmvc:
-          discovery:
-            locator:
-              enabled: true
-              lower-case-service-id: true
           routes:
 
             # ── Job Service ────────────────────────────────────────────
             - id: job-service
-              uri: lb://job-service
+              uri: http://job-service:8083
               predicates:
                 - Path=/api/job/**
 
 
             # ── CV Service ─────────────────────────────────────────────
             - id: cv-service
-              uri: lb://cv-service
+              uri: http://cv-service:8082
               predicates:
                 - Path=/api/cv/**
 
 
             # ── Auth Service ─────────────────────────────────────────────
             - id: auth-service
-              uri: lb://auth-service
+              uri: http://auth-service:8081
               predicates:
                 - Path=/api/auth/**, /api/tokens/**, /api/users/**
               filters:
@@ -35,7 +31,7 @@ spring:
 
             # ── Roadmap Service ─────────────────────────────────────────────
             - id: roadmap-service
-              uri: lb://roadmap-service
+              uri: http://roadmap-service:8085
               predicates:
                 - Path=/api/roadmap/**
   boot:

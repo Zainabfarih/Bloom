@@ -8,4 +8,4 @@ data:
   EUREKA_URI: "http://discovery-server:8761/eureka/"
   ADMIN_SERVER_URL: "http://admin-server:8090"
   GEMINI_MODEL_ROADMAP: "gemini-3.5-flash"
-  FRONTEND_URL: "http://bloom.local"
+  FRONTEND_URL: "http://140.238.123.230"
