@@ -39,7 +39,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/tokens/**", "/error",
-                                "/actuator/health", "/actuator/prometheus", "/actuator/metrics", "/actuator/info").permitAll()
+                                "/actuator/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/users/admin/**").hasRole("ADMIN") // Protect admin routes
                         .anyRequest().authenticated()

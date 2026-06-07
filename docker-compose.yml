@@ -187,6 +187,7 @@ services:
     container_name: bloom-auth
     environment:
       EUREKA_URI: http://discovery-server:8761/eureka/
+      ADMIN_SERVER_URL: http://admin-server:8090
       ZIPKIN_URL: http://zipkin:9411/api/v2/spans
       # Base de donnees externe (Azure / Supabase) fournie via .env
       DB_AUTH_URL: ${DB_AUTH_URL}

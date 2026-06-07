@@ -24,6 +24,14 @@ spring:
   cloud:
     config:
       enabled: false
+  boot:
+    admin:
+      client:
+        url: ${ADMIN_SERVER_URL:http://localhost:8090}
+        username: admin
+        password: admin
+        instance:
+          prefer-ip: true
   mail:
     host: ${MAIL_HOST}
     port: 587
@@ -50,8 +58,8 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
-    fetch-registry: false
-    register-with-eureka: false
+    fetch-registry: true
+    register-with-eureka: true
 
 management:
   endpoints:

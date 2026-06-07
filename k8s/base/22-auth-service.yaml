@@ -43,6 +43,9 @@ spec:
             - name: ZIPKIN_URL
               valueFrom:
                 configMapKeyRef: { name: bloom-config, key: ZIPKIN_URL }
+            - name: ADMIN_SERVER_URL
+              valueFrom:
+                configMapKeyRef: { name: bloom-config, key: ADMIN_SERVER_URL }
             - name: FRONTEND_URL
               valueFrom:
                 configMapKeyRef: { name: bloom-config, key: FRONTEND_URL }
