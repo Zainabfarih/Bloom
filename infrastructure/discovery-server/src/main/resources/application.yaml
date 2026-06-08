@@ -12,9 +12,15 @@ eureka:
     service-url:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
   server:
-    # Dev : pas de self-preservation, expiration rapide des instances mortes
-    enable-self-preservation: false
-    eviction-interval-timer-in-ms: 15000
+    # PROD par defaut : self-preservation ACTIVE -> protege contre l'eviction massive
+    # d'instances lors d'une partition reseau (Eureka garde les instances si trop de
+    # renouvellements manquent au lieu de les supprimer a tort).
+    # En DEV on la desactive (EUREKA_SELF_PRESERVATION=false) pour un nettoyage rapide.
+    enable-self-preservation: ${EUREKA_SELF_PRESERVATION:true}
+    # Sous ce % de renouvellements attendus, le mode self-preservation se declenche.
+    renewal-percent-threshold: 0.85
+    # Intervalle d'eviction des instances expirees (prod 60s, dev 15s via env).
+    eviction-interval-timer-in-ms: ${EUREKA_EVICTION_INTERVAL_MS:60000}
 
 management:
   endpoints:

@@ -12,6 +12,11 @@ spring:
     config:
       server:
 
+        # Indicateur de sante du repo desactive : il est lent (lourd sous charge)
+        # et fait expirer le healthcheck. La liveness n'a pas besoin de valider le repo.
+        health:
+          enabled: false
+
         # ── Profil NATIVE : fichiers locaux ────────────────────────────────
         native:
           search-locations: file:${CONFIG_REPO_PATH}

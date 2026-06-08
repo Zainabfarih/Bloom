@@ -32,6 +32,10 @@ services:
       context: ./infrastructure/discovery-server
     image: bloom/discovery-server:latest
     container_name: bloom-discovery
+    environment:
+      # DEV : self-preservation OFF + eviction rapide (en prod/k8s : valeurs par defaut = ON / 60s)
+      EUREKA_SELF_PRESERVATION: "false"
+      EUREKA_EVICTION_INTERVAL_MS: "15000"
     ports:
       - "8761:8761"
     healthcheck:
@@ -62,9 +66,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8888/actuator/health || exit 1"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 40s
+      start_period: 180s
     networks:
       - bloom-net
 

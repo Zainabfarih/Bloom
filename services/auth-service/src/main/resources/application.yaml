@@ -69,6 +69,11 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    mail:
+      enabled: false   # SMTP indisponible ne doit pas marquer le service DOWN
+    config:
+      enabled: false   # auth n'utilise pas le config-server (cloud.config.enabled=false)
   prometheus:
     metrics:
       export:
