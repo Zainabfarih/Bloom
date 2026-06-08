@@ -1,14 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import {
   Search, MapPin, Building2, X, ExternalLink, Loader2,
-  CheckCircle2, Target, Trash2, Sparkles, Map as MapIcon,
+  CheckCircle2, Target, Trash2, Sparkles, GraduationCap,
   Bookmark, ArrowLeft,
 } from 'lucide-react';
 import { useState } from 'react';
 import { jobApi } from '../api/job.api';
 import { cvApi } from '../api/cv.api';
-import { roadmapApi } from '../api/roadmap.api';
 import { Spinner } from '../components/ui/Spinner';
 import { useToast } from '../components/ui/Toast';
 import type {
@@ -42,6 +40,13 @@ const computeMatch = (required: string[], cvSkills: string[]): MatchResult => {
   return { score, matched, missing };
 };
 
+// Simple front-side e-learning search links for a missing skill.
+const learnLinks = (skill: string) => [
+  { label: 'YouTube', url: `https://www.youtube.com/results?search_query=${encodeURIComponent(skill + ' tutorial')}` },
+  { label: 'Coursera', url: `https://www.coursera.org/search?query=${encodeURIComponent(skill)}` },
+  { label: 'Google', url: `https://www.google.com/search?q=${encodeURIComponent('learn ' + skill)}` },
+];
+
 interface OpenJob {
   jobExternalId: string;
   saved?: SavedJobResponse;
@@ -50,7 +55,6 @@ interface OpenJob {
 export const JobsPage = () => {
   const qc = useQueryClient();
   const toast = useToast();
-  const navigate = useNavigate();
 
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
@@ -104,15 +108,6 @@ export const JobsPage = () => {
       toast.info('Job removed from saved');
     },
     onError: () => toast.error('Could not remove this job'),
-  });
-
-  const roadmapMutation = useMutation({
-    mutationFn: (targetJobId: number) => roadmapApi.generate({ targetJobId }),
-    onSuccess: () => {
-      toast.success('Learning roadmap generated');
-      navigate('/roadmap');
-    },
-    onError: () => toast.error('Could not generate the roadmap'),
   });
 
   const savedByExternalId = new Map(savedJobs?.map(s => [s.jobExternalId, s]) ?? []);
@@ -263,9 +258,7 @@ export const JobsPage = () => {
                 fallbackApplyUrl={openSaved?.jobApplyUrl}
                 saved={openSaved}
                 saving={saveMutation.isPending}
-                generating={roadmapMutation.isPending}
                 onSave={() => saveMutation.mutate(openJob.jobExternalId)}
-                onGenerateRoadmap={() => openSaved && roadmapMutation.mutate(openSaved.id)}
                 onClose={closeModal}
               />
             ) : detailError ? (
@@ -290,7 +283,7 @@ export const JobsPage = () => {
 
 const JobDetailView = ({
   title, company, location, description, requiredSkills, applyOptions, fallbackApplyUrl,
-  saved, saving, generating, onSave, onGenerateRoadmap, onClose,
+  saved, saving, onSave, onClose,
 }: {
   title: string;
   company?: string;
@@ -301,9 +294,7 @@ const JobDetailView = ({
   fallbackApplyUrl?: string;
   saved?: SavedJobResponse;
   saving: boolean;
-  generating: boolean;
   onSave: () => void;
-  onGenerateRoadmap: () => void;
   onClose: () => void;
 }) => {
   const toast = useToast();
@@ -403,6 +394,26 @@ const JobDetailView = ({
           </div>
         )}
 
+        {missing.length > 0 && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.detailHeading}><GraduationCap size={14} /> E-learning resources</h4>
+            <div className={styles.resourceList}>
+              {missing.slice(0, 6).map(skill => (
+                <div key={skill} className={styles.resourceRow}>
+                  <span className={styles.resourceSkill}>{skill}</span>
+                  <div className={styles.resourceLinks}>
+                    {learnLinks(skill).map(r => (
+                      <a key={r.label} href={r.url} target="_blank" rel="noopener noreferrer" className={styles.resourceLink}>
+                        {r.label} <ExternalLink size={11} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {ApplySection}
 
         <div className={styles.modalActions}>
@@ -418,13 +429,10 @@ const JobDetailView = ({
             </>
           ) : (
             <>
+              <span className={styles.savedHint}>
+                <CheckCircle2 size={13} /> Saved — generate a roadmap from the Roadmap page
+              </span>
               <button className="btn btn--ghost" onClick={onClose}>Close</button>
-              {missing.length > 0 && (
-                <button className="btn btn--primary" onClick={onGenerateRoadmap} disabled={generating}>
-                  {generating ? <Spinner size={16} color="#fff" /> : <MapIcon size={14} />}
-                  Generate learning resources
-                </button>
-              )}
             </>
           )}
         </div>
