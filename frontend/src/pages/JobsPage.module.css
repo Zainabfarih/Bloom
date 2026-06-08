@@ -341,3 +341,42 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+
+.scoreHero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 0 22px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.scoreRing {
+  flex-shrink: 0;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.scoreGreen  { background: var(--green-glow);  color: var(--green);  border: 2px solid rgba(16,185,129,0.3); }
+.scoreYellow { background: var(--yellow-glow); color: var(--yellow); border: 2px solid rgba(245,158,11,0.32); }
+.scoreRed    { background: var(--red-glow);    color: var(--red);    border: 2px solid rgba(244,63,94,0.28); }
+
+.scoreHeroTitle {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.scoreHeroDesc {
+  font-size: 13.5px;
+  color: var(--text-2);
+}
