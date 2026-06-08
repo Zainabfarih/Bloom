@@ -49,7 +49,7 @@ data:
           "targets": [
             {
               "refId": "A",
-              "expr": "up{job=\"bloom-microservices\", service=~\"$service\"}",
+              "expr": "max by (service) (up{job=\"bloom-microservices\", service=~\"$service\"})",
               "legendFormat": "{{service}}"
             }
           ]
