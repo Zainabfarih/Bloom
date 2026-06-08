@@ -54,18 +54,22 @@ jobs:
 
       - name: Upload surefire reports (on failure)
         if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports-job-service
           path: services/job-service/target/surefire-reports/
+          retention-days: 5
 
       - name: Upload coverage (JaCoCo)
-        if: always()
+        if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-job-service
           path: services/job-service/target/site/jacoco/
           if-no-files-found: warn
+          retention-days: 5
 
   level3-build:
     name: "[job-service] Niveau 3 — Build final"

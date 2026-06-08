@@ -54,10 +54,12 @@ jobs:
 
       - name: Upload surefire reports (on failure)
         if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports-roadmap-service
           path: services/roadmap-service/target/surefire-reports/
+          retention-days: 5
 
   level3-build:
     name: "[roadmap-service] Niveau 3 — Build final"
