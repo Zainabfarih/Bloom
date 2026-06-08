@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
@@ -8,13 +8,14 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/ui/Toast';
 import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import './index.css';
-import { useAuthStore } from './store/auth.store';
 
 
 import { LoginPage }          from './pages/LoginPage';
 import { RegisterPage }       from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage }  from './pages/ResetPasswordPage';
+import { HomePage }           from './pages/HomePage';
+import { AboutPage }          from './pages/AboutPage';
 import { DashboardPage }      from './pages/DashboardPage';
 import { CvPage }             from './pages/CvPage';
 import { JobsPage }           from './pages/JobsPage';
@@ -31,11 +32,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-const RootRedirect = () => {
-  const user = useAuthStore(s => s.user);
-  return <Navigate to={user?.role === 'ADMIN' ? '/admin' : '/dashboard'} replace />;
-};
 
 const NotFoundPage = () => (
   <div style={{
@@ -73,6 +69,8 @@ export function App() {
             <BrowserRouter>
               <Routes>
                 {/* Public */}
+                <Route path="/"                element={<HomePage />} />
+                <Route path="/about"           element={<AboutPage />} />
                 <Route path="/login"           element={<LoginPage />} />
                 <Route path="/register"        element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -95,9 +93,6 @@ export function App() {
                     <Route path="/admin" element={<AdminPage />} />
                   </Route>
                 </Route>
-
-                {/* Root redirect — role-aware */}
-                <Route path="/" element={<RootRedirect />} />
 
                 {/* 404 */}
                 <Route path="*" element={<NotFoundPage />} />
