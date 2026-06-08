@@ -106,9 +106,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8083/actuator/health || exit 1"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 240s
     networks:
       - bloom-net
 
@@ -142,9 +142,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health || exit 1"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 240s
     networks:
       - bloom-net
 
@@ -246,9 +246,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8085/actuator/health || exit 1"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 240s
     networks:
       - bloom-net
 
