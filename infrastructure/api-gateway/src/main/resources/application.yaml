@@ -5,29 +5,25 @@ spring:
     gateway:
       server:
         webmvc:
-          discovery:
-            locator:
-              enabled: true
-              lower-case-service-id: true
           routes:
 
             # ── Job Service ────────────────────────────────────────────
             - id: job-service
-              uri: lb://job-service
+              uri: http://job-service:8083
               predicates:
                 - Path=/api/job/**
 
 
             # ── CV Service ─────────────────────────────────────────────
             - id: cv-service
-              uri: lb://cv-service
+              uri: http://cv-service:8082
               predicates:
                 - Path=/api/cv/**
 
 
             # ── Auth Service ─────────────────────────────────────────────
             - id: auth-service
-              uri: lb://auth-service
+              uri: http://auth-service:8081
               predicates:
                 - Path=/api/auth/**, /api/tokens/**, /api/users/**
               filters:
@@ -35,7 +31,7 @@ spring:
 
             # ── Roadmap Service ─────────────────────────────────────────────
             - id: roadmap-service
-              uri: lb://roadmap-service
+              uri: http://roadmap-service:8085
               predicates:
                 - Path=/api/roadmap/**
   boot:
@@ -62,12 +58,28 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,gateway
+        include: health,info,metrics,gateway,prometheus,loggers
   endpoint:
     health:
       show-details: always
     gateway:
       enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
 
 internal:
   security:

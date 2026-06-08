@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: bloom-compose
+
+scrape_configs:
+  # Prometheus se scrape lui-meme
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Microservices Spring Boot presents dans docker-compose.
+  # Les noms d'hote = noms de service compose (resolus sur le reseau bloom-net).
+  - job_name: 'bloom-microservices'
+    metrics_path: /actuator/prometheus
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['discovery-server:8761']
+        labels: { service: discovery-server }
+      - targets: ['config-server:8888']
+        labels: { service: config-server }
+      - targets: ['job-service:8083']
+        labels: { service: job-service }
+      - targets: ['cv-service:8082']
+        labels: { service: cv-service }
+      - targets: ['auth-service:8081']
+        labels: { service: auth-service }
+      - targets: ['roadmap-service:8085']
+        labels: { service: roadmap-service }
+      - targets: ['api-gateway:8080']
+        labels: { service: api-gateway }
+      - targets: ['admin-server:8090']
+        labels: { service: admin-server }

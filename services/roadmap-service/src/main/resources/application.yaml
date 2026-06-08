@@ -19,6 +19,16 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_batch_fetch_size: 20
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  profiles:
+    active: ${CONFIG_SERVER_PROFILE:git}
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        max-attempts: 5
+        initial-interval: 1000
 
 server:
   port: 8085
@@ -26,7 +36,7 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}

@@ -3,7 +3,6 @@ import type {
   JobDetailResponse,
   JobSearchResponse,
   SavedJobResponse,
-  SaveJobRequest,
 } from '@/types';
 
 /**
@@ -12,7 +11,7 @@ import type {
  *
  *   GET    /job/search?query&location   (SerpAPI, cached 24h)
  *   GET    /job/{jobId}                 (detail — requires a prior search)
- *   POST   /job/saved                   (save + server-side skill match)
+ *   POST   /job/saved/{jobId}?cvUuid    (save + server-side skill match)
  *   GET    /job/saved                   (ordered by compatibility DESC)
  *   GET    /job/saved/{uuid}
  *   DELETE /job/saved/{jobExternalId}   (NB: deletes by EXTERNAL id, not uuid)
@@ -33,8 +32,15 @@ export const jobApi = {
     return response.data;
   },
 
-  saveJob: async (data: SaveJobRequest): Promise<SavedJobResponse> => {
-    const response = await client.post('/job/saved', data);
+  // Match against the active CV (or cvUuid) and persist the result.
+  saveJob: async (jobId: string, cvUuid?: string): Promise<SavedJobResponse> => {
+    const params: Record<string, string> = {};
+    if (cvUuid) params.cvUuid = cvUuid;
+    const response = await client.post(
+      `/job/saved/${encodeURIComponent(jobId)}`,
+      null,
+      { params }
+    );
     return response.data;
   },
 

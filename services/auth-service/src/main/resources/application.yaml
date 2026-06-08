@@ -4,16 +4,18 @@ server:
 spring:
   application:
     name: auth-service
-  config:
-    import: optional:file:.env[.properties]
   datasource:
     url: jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require
     username: ${DB_AUTH_USER}
     password: ${DB_AUTH_PASS}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 1
+      connection-timeout: 30000
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -22,6 +24,14 @@ spring:
   cloud:
     config:
       enabled: false
+  boot:
+    admin:
+      client:
+        url: ${ADMIN_SERVER_URL:http://localhost:8090}
+        username: admin
+        password: admin
+        instance:
+          prefer-ip: true
   mail:
     host: ${MAIL_HOST}
     port: 587
@@ -40,14 +50,43 @@ app:
   frontend-url: ${FRONTEND_URL}
   max-failed-login-attempts: 5
 
+internal:
+  security:
+    gateway-secret: ${INTERNAL_GATEWAY_SECRET}
+
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
-    # Optionnel : Si vous testez sans lancer votre Eureka Server, mettez ces deux lignes à 'false' pour éviter les erreurs rouges au démarrage :
-      fetch-registry: false
-      register-with-eureka: false
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    fetch-registry: true
+    register-with-eureka: true
 
-logging:
-  level:
-    org.springframework.security: TRACE
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+  endpoint:
+    health:
+      show-details: always
+  health:
+    mail:
+      enabled: false   # SMTP indisponible ne doit pas marquer le service DOWN
+    config:
+      enabled: false   # auth n'utilise pas le config-server (cloud.config.enabled=false)
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}

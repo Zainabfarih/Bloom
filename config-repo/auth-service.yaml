@@ -8,13 +8,15 @@ internal:
 spring:
   application:
     name: auth-service
-  config:
-    import: optional:file:.env[.properties]
   datasource:
     url: ${DB_AUTH_URL}
     username: ${DB_AUTH_USER}
     password: ${DB_AUTH_PASS}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 1
+      connection-timeout: 30000
   jpa:
     hibernate:
       ddl-auto: update
@@ -25,9 +27,6 @@ spring:
       connection:
         ssl: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-  cloud:
-    config:
-      enabled: false
   mail:
     host: ${MAIL_HOST}
     port: 587
@@ -50,9 +49,8 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
-      # Optionnel : Si vous testez sans lancer votre Eureka Server, mettez ces deux lignes à 'false' pour éviter les erreurs rouges au démarrage :
-      fetch-registry: false
-      register-with-eureka: false
+    fetch-registry: false
+    register-with-eureka: false
 
 logging:
   level:

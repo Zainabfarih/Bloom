@@ -1,0 +1,77 @@
+name: Bloom CD — reusable deploy
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      context:
+        required: true
+        type: string
+      deployment:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to OCIR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.OCIR_REGISTRY_HOST }}
+          username: ${{ secrets.OCIR_USERNAME }}
+          password: ${{ secrets.OCIR_TOKEN }}
+
+      - name: Build & push (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.OCIR_REGISTRY }}/${{ inputs.image }}:${{ github.sha }}
+            ${{ secrets.OCIR_REGISTRY }}/${{ inputs.image }}:latest
+
+      - uses: azure/setup-kubectl@v4
+
+      - name: Install & configure OCI CLI
+        env:
+          OCI_CLI_USER: ${{ secrets.OCI_CLI_USER }}
+          OCI_CLI_TENANCY: ${{ secrets.OCI_CLI_TENANCY }}
+          OCI_CLI_FINGERPRINT: ${{ secrets.OCI_CLI_FINGERPRINT }}
+          OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
+          OCI_CLI_KEY_CONTENT: ${{ secrets.OCI_CLI_KEY_CONTENT }}
+        run: |
+          curl -sL https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh \
+            | bash -s -- --accept-all-defaults
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          mkdir -p $HOME/.oci
+          printf '%s' "$OCI_CLI_KEY_CONTENT" > $HOME/.oci/key.pem
+          chmod 600 $HOME/.oci/key.pem
+          cat > $HOME/.oci/config <<EOF
+          [DEFAULT]
+          user=$OCI_CLI_USER
+          tenancy=$OCI_CLI_TENANCY
+          fingerprint=$OCI_CLI_FINGERPRINT
+          region=$OCI_CLI_REGION
+          key_file=$HOME/.oci/key.pem
+          EOF
+          chmod 600 $HOME/.oci/config
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > $HOME/.kube/config
+
+      - name: Deploy new image
+        run: |
+          kubectl -n bloom set image deployment/${{ inputs.deployment }} \
+            ${{ inputs.deployment }}=${{ secrets.OCIR_REGISTRY }}/${{ inputs.image }}:${{ github.sha }}
+          kubectl -n bloom rollout status deployment/${{ inputs.deployment }} --timeout=300s

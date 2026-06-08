@@ -1,0 +1,90 @@
+# =====================================================================
+#  roadmap-service
+# =====================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: roadmap-service
+  namespace: bloom
+  labels:
+    app: roadmap-service
+spec:
+  selector:
+    app: roadmap-service
+  ports:
+    - port: 8085
+      targetPort: 8085
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: roadmap-service
+  namespace: bloom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: roadmap-service
+  template:
+    metadata:
+      labels:
+        app: roadmap-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8085"
+    spec:
+      containers:
+        - name: roadmap-service
+          image: bloom/roadmap-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8085
+          envFrom:
+            - configMapRef: { name: bloom-config }
+            - secretRef: { name: bloom-secrets }
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "default"
+            - name: SPRING_CONFIG_IMPORT
+              value: "configserver:http://config-server:8888"
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8085
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8085
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8085
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits:   { cpu: "1000m", memory: "768Mi" }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: roadmap-service
+  namespace: bloom
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: roadmap-service
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75

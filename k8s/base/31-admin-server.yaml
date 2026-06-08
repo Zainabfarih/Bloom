@@ -1,0 +1,64 @@
+# admin-server (Spring Boot Admin)
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-server
+  namespace: bloom
+  labels:
+    app: admin-server
+spec:
+  selector:
+    app: admin-server
+  ports:
+    - port: 8090
+      targetPort: 8090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-server
+  namespace: bloom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin-server
+  template:
+    metadata:
+      labels:
+        app: admin-server
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8090"
+    spec:
+      containers:
+        - name: admin-server
+          image: bloom/admin-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8090
+          env:
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef: { name: bloom-config, key: EUREKA_URI }
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8090
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8090
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8090
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }

@@ -1,0 +1,17 @@
+name: Bloom CD — cv-service
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/cv-service/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/cd-reusable.yaml
+    secrets: inherit
+    with:
+      image: bloom-cv-service
+      context: services/cv-service
+      deployment: cv-service

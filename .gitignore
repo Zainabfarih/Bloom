@@ -2,3 +2,13 @@
 .env
 **/target/
 .vscode
+
+# Secrets Kubernetes (valeurs reelles, jamais versionnees)
+k8s/base/01-secrets.yaml
+
+# Terraform : etat, cache et variables reelles
+terraform/oci/.terraform/
+terraform/oci/.terraform.lock.hcl
+terraform/oci/*.tfstate
+terraform/oci/*.tfstate.*
+terraform/oci/terraform.tfvars

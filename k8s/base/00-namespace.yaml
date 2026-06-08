@@ -1,0 +1,7 @@
+# Namespace dedie au projet Bloom
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bloom
+  labels:
+    app.kubernetes.io/part-of: bloom-platform
