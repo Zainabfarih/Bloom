@@ -123,3 +123,81 @@ data:
         }
       ]
     }
+  bloom-gateway.json: |
+    {
+      "title": "Bloom - API Gateway",
+      "uid": "bloom-gateway",
+      "editable": true,
+      "schemaVersion": 39,
+      "timezone": "browser",
+      "time": { "from": "now-1h", "to": "now" },
+      "refresh": "30s",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Requetes / s par route",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(http_server_requests_seconds_count{application=\"api-gateway\"}[5m])) by (uri)",
+              "legendFormat": "{{uri}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Latence p95 par route (s)",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "s" } },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=\"api-gateway\"}[5m])) by (le, uri))",
+              "legendFormat": "{{uri}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Erreurs 5xx / s par route",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(http_server_requests_seconds_count{application=\"api-gateway\", status=~\"5..\"}[5m])) by (uri)",
+              "legendFormat": "{{uri}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Circuit Breakers - etat (1 = actif)",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "resilience4j_circuitbreaker_state{application=\"api-gateway\"}",
+              "legendFormat": "{{name}} - {{state}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Circuit Breakers - appels echoues / s",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(resilience4j_circuitbreaker_calls_seconds_count{application=\"api-gateway\", kind=\"failed\"}[5m])) by (name)",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        }
+      ]
+    }
