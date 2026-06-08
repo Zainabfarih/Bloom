@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import {
   Search, MapPin, Building2, X, ExternalLink, Loader2,
-  CheckCircle2, Target, Trash2, Sparkles, Map as MapIcon,
+  CheckCircle2, Target, Trash2, Sparkles, GraduationCap,
+  Bookmark, ArrowLeft,
 } from 'lucide-react';
 import { useState } from 'react';
 import { jobApi } from '../api/job.api';
-import { roadmapApi } from '../api/roadmap.api';
+import { cvApi } from '../api/cv.api';
 import { Spinner } from '../components/ui/Spinner';
 import { useToast } from '../components/ui/Toast';
 import type {
@@ -23,6 +23,30 @@ const fallbackPosting = (title?: string, company?: string): string => {
 const httpLink = (url?: string): string | undefined =>
   url && /^https?:\/\//i.test(url) ? url : undefined;
 
+interface MatchResult {
+  score: number;
+  matched: string[];
+  missing: string[];
+}
+
+// Mirrors the backend SkillMatchingService so the preview equals the saved match.
+const normalizeSkill = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const computeMatch = (required: string[], cvSkills: string[]): MatchResult => {
+  const have = new Set(cvSkills.map(normalizeSkill));
+  const matched = required.filter(s => have.has(normalizeSkill(s)));
+  const missing = required.filter(s => !have.has(normalizeSkill(s)));
+  const score = required.length ? Math.round((matched.length / required.length) * 100) : 0;
+  return { score, matched, missing };
+};
+
+// Simple front-side e-learning search links for a missing skill.
+const learnLinks = (skill: string) => [
+  { label: 'YouTube', url: `https://www.youtube.com/results?search_query=${encodeURIComponent(skill + ' tutorial')}` },
+  { label: 'Coursera', url: `https://www.coursera.org/search?query=${encodeURIComponent(skill)}` },
+  { label: 'Google', url: `https://www.google.com/search?q=${encodeURIComponent('learn ' + skill)}` },
+];
+
 interface OpenJob {
   jobExternalId: string;
   saved?: SavedJobResponse;
@@ -31,7 +55,6 @@ interface OpenJob {
 export const JobsPage = () => {
   const qc = useQueryClient();
   const toast = useToast();
-  const navigate = useNavigate();
 
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
@@ -62,19 +85,18 @@ export const JobsPage = () => {
     retry: false,
   });
 
-  // Save endpoint matches the active CV and persists the result: match == save.
-  const matchMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: (jobId: string) => jobApi.saveJob(jobId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['savedJobs'] });
-      toast.success('Matched against your CV');
+      toast.success('Job saved to your list');
     },
     onError: (err: unknown) => {
       const e = err as { response?: { status?: number } };
-      if (e?.response?.status === 503 || e?.response?.status === 502) {
-        toast.error('Upload a CV first, then match this job');
+      if (e?.response?.status === 503) {
+        toast.error('Upload a CV first, then save this job');
       } else {
-        toast.error('Could not match this job');
+        toast.error('Could not save this job');
       }
     },
   });
@@ -86,15 +108,6 @@ export const JobsPage = () => {
       toast.info('Job removed from saved');
     },
     onError: () => toast.error('Could not remove this job'),
-  });
-
-  const roadmapMutation = useMutation({
-    mutationFn: (targetJobId: number) => roadmapApi.generate({ targetJobId }),
-    onSuccess: () => {
-      toast.success('Roadmap generated');
-      navigate('/roadmap');
-    },
-    onError: () => toast.error('Could not generate the roadmap'),
   });
 
   const savedByExternalId = new Map(savedJobs?.map(s => [s.jobExternalId, s]) ?? []);
@@ -109,7 +122,6 @@ export const JobsPage = () => {
     }
   };
 
-  // Live saved record for the open job (so the modal reflects a fresh match).
   const openSaved = openJob
     ? savedByExternalId.get(openJob.jobExternalId) ?? openJob.saved
     : undefined;
@@ -197,9 +209,9 @@ export const JobsPage = () => {
 
           {!loadingSaved && savedJobs?.length === 0 && (
             <div className={styles.empty}>
-              <Target size={40} color="var(--text-3)" />
-              <p>No matched jobs yet</p>
-              <p style={{ fontSize: 13 }}>Open a job and match it with your CV to track it here</p>
+              <Bookmark size={40} color="var(--text-3)" />
+              <p>No saved jobs yet</p>
+              <p style={{ fontSize: 13 }}>Open a job, match it with your CV and save it to track it here</p>
             </div>
           )}
 
@@ -241,14 +253,12 @@ export const JobsPage = () => {
                 company={detail?.companyName ?? openSaved?.jobCompany}
                 location={detail?.location ?? openSaved?.jobLocation}
                 description={detail?.description}
-                requiredSkills={detail?.extractedSkills}
+                requiredSkills={detail?.extractedSkills ?? openSaved?.requiredSkills}
                 applyOptions={detail?.applyOptions}
                 fallbackApplyUrl={openSaved?.jobApplyUrl}
                 saved={openSaved}
-                matching={matchMutation.isPending}
-                generating={roadmapMutation.isPending}
-                onMatch={() => matchMutation.mutate(openJob.jobExternalId)}
-                onGenerateRoadmap={() => openSaved && roadmapMutation.mutate(openSaved.id)}
+                saving={saveMutation.isPending}
+                onSave={() => saveMutation.mutate(openJob.jobExternalId)}
                 onClose={closeModal}
               />
             ) : detailError ? (
@@ -273,7 +283,7 @@ export const JobsPage = () => {
 
 const JobDetailView = ({
   title, company, location, description, requiredSkills, applyOptions, fallbackApplyUrl,
-  saved, matching, generating, onMatch, onGenerateRoadmap, onClose,
+  saved, saving, onSave, onClose,
 }: {
   title: string;
   company?: string;
@@ -283,28 +293,158 @@ const JobDetailView = ({
   applyOptions?: ApplyOption[];
   fallbackApplyUrl?: string;
   saved?: SavedJobResponse;
-  matching: boolean;
-  generating: boolean;
-  onMatch: () => void;
-  onGenerateRoadmap: () => void;
+  saving: boolean;
+  onSave: () => void;
   onClose: () => void;
 }) => {
+  const toast = useToast();
+  const [preview, setPreview] = useState<MatchResult | null>(null);
+  const [view, setView] = useState<'detail' | 'match'>(saved ? 'match' : 'detail');
+
   const links = (applyOptions ?? []).filter(o => httpLink(o.link));
   const fallback = httpLink(fallbackApplyUrl) ?? fallbackPosting(title, company);
-  const score = saved?.compatibilityScore;
 
+  const matchMutation = useMutation({
+    mutationFn: async () => {
+      const cv = await cvApi.getActiveCv();
+      return computeMatch(requiredSkills ?? [], cv.skills ?? []);
+    },
+    onSuccess: (res) => {
+      setPreview(res);
+      setView('match');
+    },
+    onError: () => toast.error('Upload a CV first, then match this job'),
+  });
+
+  // Saved record (server) wins; otherwise the local preview.
+  const result: MatchResult | null = saved
+    ? { score: saved.compatibilityScore, matched: saved.matchedSkills, missing: saved.missingSkills }
+    : preview;
+
+  const ApplySection = (
+    <div className={styles.detailSection}>
+      <h4 className={styles.detailHeading}><ExternalLink size={14} /> Apply</h4>
+      <div className={styles.applyList}>
+        {links.length > 0 ? (
+          links.map((o, i) => (
+            <a key={i} href={o.link} target="_blank" rel="noopener noreferrer" className="btn btn--soft btn--sm">
+              {o.title ?? 'Apply'} <ExternalLink size={12} />
+            </a>
+          ))
+        ) : (
+          <a href={fallback} target="_blank" rel="noopener noreferrer" className="btn btn--soft btn--sm">
+            View posting <ExternalLink size={12} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+
+  const Meta = (
+    <div className={styles.modalMeta}>
+      {company && <span><Building2 size={13} />{company}</span>}
+      {location && <span><MapPin size={13} />{location}</span>}
+      {saved?.savedAt && (
+        <span>Saved {new Date(saved.savedAt).toLocaleDateString('en-GB', {
+          day: '2-digit', month: 'short', year: 'numeric',
+        })}</span>
+      )}
+    </div>
+  );
+
+  // ── Match result view ──
+  if (view === 'match' && result) {
+    const { score, matched, missing } = result;
+    return (
+      <div className={styles.modalContent}>
+        <h2 className={styles.modalTitle}>{title}</h2>
+        {Meta}
+
+        <div className={styles.scoreHero}>
+          <div className={`${styles.scoreRing} ${
+            score >= 70 ? styles.scoreGreen : score >= 40 ? styles.scoreYellow : styles.scoreRed
+          }`}>
+            <span>{score}%</span>
+          </div>
+          <div>
+            <p className={styles.scoreHeroTitle}>CV compatibility</p>
+            <p className={styles.scoreHeroDesc}>
+              {score >= 70 ? 'Strong fit for your profile'
+                : score >= 40 ? 'Partial fit — a few skills to learn'
+                : 'Some upskilling needed for this role'}
+            </p>
+          </div>
+        </div>
+
+        {matched.length > 0 && (
+          <div className={styles.skillGroup}>
+            <p className={styles.skillGroupLabel}><CheckCircle2 size={13} /> Skills you have ({matched.length})</p>
+            <div className={styles.modalSkillsInline}>
+              {matched.map(s => <span key={s} className="badge badge--green">{s}</span>)}
+            </div>
+          </div>
+        )}
+
+        {missing.length > 0 && (
+          <div className={styles.skillGroup}>
+            <p className={styles.skillGroupLabel}><Target size={13} /> Skills to learn ({missing.length})</p>
+            <div className={styles.modalSkillsInline}>
+              {missing.map(s => <span key={s} className="badge badge--red">{s}</span>)}
+            </div>
+          </div>
+        )}
+
+        {missing.length > 0 && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.detailHeading}><GraduationCap size={14} /> E-learning resources</h4>
+            <div className={styles.resourceList}>
+              {missing.slice(0, 6).map(skill => (
+                <div key={skill} className={styles.resourceRow}>
+                  <span className={styles.resourceSkill}>{skill}</span>
+                  <div className={styles.resourceLinks}>
+                    {learnLinks(skill).map(r => (
+                      <a key={r.label} href={r.url} target="_blank" rel="noopener noreferrer" className={styles.resourceLink}>
+                        {r.label} <ExternalLink size={11} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {ApplySection}
+
+        <div className={styles.modalActions}>
+          {!saved ? (
+            <>
+              <button className="btn btn--ghost" onClick={() => setView('detail')}>
+                <ArrowLeft size={14} /> Back
+              </button>
+              <button className="btn btn--primary" onClick={onSave} disabled={saving}>
+                {saving ? <Spinner size={16} color="#fff" /> : <Bookmark size={14} />}
+                Save job
+              </button>
+            </>
+          ) : (
+            <>
+              <span className={styles.savedHint}>
+                <CheckCircle2 size={13} /> Saved — generate a roadmap from the Roadmap page
+              </span>
+              <button className="btn btn--ghost" onClick={onClose}>Close</button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Detail view ──
   return (
     <div className={styles.modalContent}>
       <h2 className={styles.modalTitle}>{title}</h2>
-      <div className={styles.modalMeta}>
-        {company && <span><Building2 size={13} />{company}</span>}
-        {location && <span><MapPin size={13} />{location}</span>}
-        {saved?.savedAt && (
-          <span>Matched {new Date(saved.savedAt).toLocaleDateString('en-GB', {
-            day: '2-digit', month: 'short', year: 'numeric',
-          })}</span>
-        )}
-      </div>
+      {Meta}
 
       {description && (
         <div className={styles.modalBody}>
@@ -312,7 +452,7 @@ const JobDetailView = ({
         </div>
       )}
 
-      {!saved && requiredSkills && requiredSkills.length > 0 && (
+      {requiredSkills && requiredSkills.length > 0 && (
         <div className={styles.detailSection}>
           <h4 className={styles.detailHeading}><Target size={14} /> Required skills</h4>
           <div className={styles.modalSkillsInline}>
@@ -321,79 +461,19 @@ const JobDetailView = ({
         </div>
       )}
 
-      <div className={styles.detailSection}>
-        <h4 className={styles.detailHeading}><ExternalLink size={14} /> Apply</h4>
-        <div className={styles.applyList}>
-          {links.length > 0 ? (
-            links.map((o, i) => (
-              <a
-                key={i}
-                href={o.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn--soft btn--sm"
-              >
-                {o.title ?? 'Apply'} <ExternalLink size={12} />
-              </a>
-            ))
-          ) : (
-            <a href={fallback} target="_blank" rel="noopener noreferrer" className="btn btn--soft btn--sm">
-              View posting <ExternalLink size={12} />
-            </a>
-          )}
-        </div>
-      </div>
-
-      <div className={styles.detailSection}>
-        <h4 className={styles.detailHeading}><Target size={14} /> CV match</h4>
-
-        {!saved ? (
-          <button className="btn btn--primary" onClick={onMatch} disabled={matching}>
-            {matching ? <Spinner size={16} color="#fff" /> : <Sparkles size={14} />}
-            Match with my CV
-          </button>
-        ) : (
-          <>
-            {score != null && (
-              <div className={styles.matchBanner}>
-                <span className={`badge ${score >= 70 ? 'badge--green' : score >= 40 ? 'badge--yellow' : 'badge--red'}`}>
-                  {score}% match with your CV
-                </span>
-              </div>
-            )}
-
-            {saved.matchedSkills?.length > 0 && (
-              <div className={styles.skillGroup}>
-                <p className={styles.skillGroupLabel}><CheckCircle2 size={13} /> Skills you have</p>
-                <div className={styles.modalSkillsInline}>
-                  {saved.matchedSkills.map(s => <span key={s} className="badge badge--green">{s}</span>)}
-                </div>
-              </div>
-            )}
-
-            {saved.missingSkills?.length > 0 && (
-              <div className={styles.skillGroup}>
-                <p className={styles.skillGroupLabel}><Target size={13} /> Skills to learn</p>
-                <div className={styles.modalSkillsInline}>
-                  {saved.missingSkills.map(s => <span key={s} className="badge badge--red">{s}</span>)}
-                </div>
-                <button
-                  className="btn btn--primary btn--sm"
-                  style={{ marginTop: 12 }}
-                  onClick={onGenerateRoadmap}
-                  disabled={generating}
-                >
-                  {generating ? <Spinner size={15} color="#fff" /> : <MapIcon size={13} />}
-                  Generate learning roadmap
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {ApplySection}
 
       <div className={styles.modalActions}>
         <button className="btn btn--ghost" onClick={onClose}>Close</button>
+        <button
+          className="btn btn--primary"
+          onClick={() => matchMutation.mutate()}
+          disabled={matchMutation.isPending || !requiredSkills?.length}
+          title={!requiredSkills?.length ? 'No required skills detected for this job' : undefined}
+        >
+          {matchMutation.isPending ? <Spinner size={16} color="#fff" /> : <Sparkles size={14} />}
+          Match with my CV
+        </button>
       </div>
     </div>
   );
@@ -427,7 +507,7 @@ const JobCard = ({
           </span>
         )}
         {matched && compatibilityScore == null && (
-          <span className="badge badge--green">Matched</span>
+          <span className="badge badge--green">Saved</span>
         )}
       </div>
       <div className={styles.jobMeta}>
