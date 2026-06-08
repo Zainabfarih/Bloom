@@ -1,0 +1,48 @@
+sequenceDiagram
+  autonumber
+  actor User as Étudiant
+  participant FE as Frontend (React)
+  participant GW as API Gateway
+  participant Ctrl as AuthController
+  participant Svc as AuthService
+  participant AM as AuthenticationManager
+  participant Repo as UserRepository
+  participant Jwt as JwtService
+  participant RT as RefreshTokenService
+  participant DB as bloom_auth (PostgreSQL)
+
+  User->>FE: saisit email + mot de passe
+  FE->>GW: POST /api/auth/login
+  GW->>Ctrl: route /api/auth/login
+  Ctrl->>Svc: login(LoginRequest)
+  Svc->>Repo: findByEmail(email)
+  Repo->>DB: SELECT * FROM users
+  DB-->>Repo: User
+  Repo-->>Svc: Optional<User>
+
+  alt compte verrouillé (locked)
+    Svc-->>Ctrl: LockedException
+    Ctrl-->>GW: 423 Locked
+  else compte actif
+    Svc->>AM: authenticate(email, password)
+    alt identifiants invalides
+      AM-->>Svc: AuthenticationException
+      Svc->>Repo: recordFailedLogin(email)
+      Repo->>DB: UPDATE failed_login_attempts
+      Svc-->>Ctrl: BadCredentialsException
+      Ctrl-->>GW: 401 Unauthorized
+    else identifiants valides
+      AM-->>Svc: OK (BCrypt match)
+      Svc->>Repo: reset failedLoginAttempts
+      Svc->>Jwt: generateAccessToken(user)
+      Jwt-->>Svc: accessToken (JWT signé HMAC)
+      Svc->>RT: createRefreshToken(userId)
+      RT->>DB: revoke anciens + INSERT refresh_token
+      RT-->>Svc: RefreshToken
+      Svc-->>Ctrl: AuthResponse(accessToken, refreshToken, user)
+      Ctrl-->>GW: 200 OK + AuthResponse
+    end
+  end
+
+  GW-->>FE: réponse HTTP
+  FE-->>User: redirection dashboard / message d'erreur
