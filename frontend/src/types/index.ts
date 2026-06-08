@@ -115,9 +115,8 @@ export interface ManualCvRequest {
 // ============================================
 
 export interface ApplyOption {
-  apply_title?: string;
-  apply_link?: string;
-  apply_email?: string;
+  title?: string;
+  link?: string;
 }
 
 export interface JobResult {

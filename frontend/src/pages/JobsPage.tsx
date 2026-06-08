@@ -1,42 +1,43 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
-  Search, Bookmark, BookmarkCheck, MapPin, Building2,
-  X, ExternalLink, Loader2, CheckCircle2, Target,
+  Search, MapPin, Building2, X, ExternalLink, Loader2,
+  CheckCircle2, Target, Trash2, Sparkles, Map as MapIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { jobApi } from '../api/job.api';
+import { roadmapApi } from '../api/roadmap.api';
 import { Spinner } from '../components/ui/Spinner';
 import { useToast } from '../components/ui/Toast';
-import type { JobSearchResponse, SavedJobResponse, JobDetailResponse } from '../types';
+import type {
+  JobSearchResponse, SavedJobResponse, JobDetailResponse, ApplyOption,
+} from '../types';
 import styles from './JobsPage.module.css';
 
-/**
- * Guaranteed "view the posting" link.
- * Prefers the real apply URL; otherwise falls back to a Google search for the
- * title + company so there is ALWAYS a working link.
- */
-const postingUrl = (title?: string, company?: string, applyUrl?: string): string => {
-  if (applyUrl && /^https?:\/\//i.test(applyUrl)) return applyUrl;
+// Always-working posting link: real apply link or a Google fallback.
+const fallbackPosting = (title?: string, company?: string): string => {
   const q = encodeURIComponent([title, company, 'job'].filter(Boolean).join(' '));
   return `https://www.google.com/search?q=${q}`;
 };
 
-/** Identifies which job's detail the modal is showing. */
+const httpLink = (url?: string): string | undefined =>
+  url && /^https?:\/\//i.test(url) ? url : undefined;
+
 interface OpenJob {
   jobExternalId: string;
-  /** The saved-job record, when opened from the Saved tab — used as fallback. */
   saved?: SavedJobResponse;
 }
 
 export const JobsPage = () => {
   const qc = useQueryClient();
   const toast = useToast();
+  const navigate = useNavigate();
+
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [submitted, setSubmitted] = useState('');
   const [submittedLocation, setSubmittedLocation] = useState('');
   const [activeTab, setActiveTab] = useState<'search' | 'saved'>('search');
-
   const [openJob, setOpenJob] = useState<OpenJob | null>(null);
 
   const { data: results, isLoading: searching } = useQuery<JobSearchResponse>({
@@ -50,8 +51,6 @@ export const JobsPage = () => {
     queryFn: jobApi.getSavedJobs,
   });
 
-  // Fetch the full detail (description + extracted skills) from the real route.
-  // Works for both search results and saved jobs as long as the search cache is warm.
   const {
     data: detail,
     isLoading: loadingDetail,
@@ -63,46 +62,24 @@ export const JobsPage = () => {
     retry: false,
   });
 
-    const saveMutation = useMutation({
-    // Accept the raw search result, then enrich with the REAL AI-extracted skills
-    // from the detail route before persisting. Falls back to whatever is passed only
-    // if the detail call fails (so a save never blocks).
-    mutationFn: async (job: {
-      jobExternalId: string;
-      jobTitle: string;
-      jobCompany?: string;
-      jobLocation?: string;
-      jobApplyUrl?: string;
-      fallbackSkills?: string[];
-    }) => {
-      let requiredSkills = job.fallbackSkills ?? [];
-      try {
-        const detail = await jobApi.getJobDetails(job.jobExternalId);
-        if (detail.extractedSkills?.length) {
-          requiredSkills = detail.extractedSkills;
-        }
-      } catch {
-        // detail route unavailable — keep fallback (may be empty; better than badges)
-      }
-      return jobApi.saveJob({
-        jobExternalId: job.jobExternalId,
-        jobTitle: job.jobTitle,
-        jobCompany: job.jobCompany,
-        jobLocation: job.jobLocation,
-        jobApplyUrl: job.jobApplyUrl,
-        requiredSkills,
-      });
-    },
+  // Save endpoint matches the active CV and persists the result: match == save.
+  const matchMutation = useMutation({
+    mutationFn: (jobId: string) => jobApi.saveJob(jobId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['savedJobs'] });
-      toast.success('Job saved to your list');
+      toast.success('Matched against your CV');
     },
-    onError: () => toast.error('Could not save this job'),
+    onError: (err: unknown) => {
+      const e = err as { response?: { status?: number } };
+      if (e?.response?.status === 503 || e?.response?.status === 502) {
+        toast.error('Upload a CV first, then match this job');
+      } else {
+        toast.error('Could not match this job');
+      }
+    },
   });
 
-
   const removeMutation = useMutation({
-    // Backend deletes by the job's EXTERNAL id, not the saved-job uuid.
     mutationFn: (jobExternalId: string) => jobApi.deleteSavedJob(jobExternalId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['savedJobs'] });
@@ -111,9 +88,16 @@ export const JobsPage = () => {
     onError: () => toast.error('Could not remove this job'),
   });
 
-  // Map savedJobs by externalId for quick lookup
-  const savedByExternalId = new Map(savedJobs?.map(s => [s.jobExternalId, s]) ?? []);
+  const roadmapMutation = useMutation({
+    mutationFn: (targetJobId: number) => roadmapApi.generate({ targetJobId }),
+    onSuccess: () => {
+      toast.success('Roadmap generated');
+      navigate('/roadmap');
+    },
+    onError: () => toast.error('Could not generate the roadmap'),
+  });
 
+  const savedByExternalId = new Map(savedJobs?.map(s => [s.jobExternalId, s]) ?? []);
   const closeModal = () => setOpenJob(null);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -125,12 +109,16 @@ export const JobsPage = () => {
     }
   };
 
+  // Live saved record for the open job (so the modal reflects a fresh match).
+  const openSaved = openJob
+    ? savedByExternalId.get(openJob.jobExternalId) ?? openJob.saved
+    : undefined;
+
   return (
     <div>
       <h1 className="section-title">Jobs</h1>
-      <p className="section-subtitle">Search opportunities and track your applications</p>
+      <p className="section-subtitle">Search opportunities, match them to your CV and plan your skills</p>
 
-      {/* Search bar */}
       <form onSubmit={handleSearch} className={styles.searchBar}>
         <Search size={16} color="var(--text-3)" style={{ flexShrink: 0 }} />
         <input
@@ -153,7 +141,6 @@ export const JobsPage = () => {
         </button>
       </form>
 
-      {/* Tabs */}
       <div className={styles.tabs}>
         <button
           className={`${styles.tab} ${activeTab === 'search' ? styles.tabActive : ''}`}
@@ -171,7 +158,6 @@ export const JobsPage = () => {
         </button>
       </div>
 
-      {/* Search results */}
       {activeTab === 'search' && (
         <div className={styles.jobList}>
           {searching && <Spinner center />}
@@ -190,45 +176,30 @@ export const JobsPage = () => {
             </div>
           )}
 
-          {results?.jobs.map(job => {
-            const saved = savedByExternalId.get(job.jobId ?? '');
-            return (
-              <JobCard
-                key={job.jobId}
-                title={job.title}
-                company={job.companyName}
-                location={job.location}
-                tags={job.extensions ?? []}
-                tagsAreMeta
-                isSaved={!!saved}
-                onSave={() => saveMutation.mutate({
-                  jobExternalId: job.jobId!,
-                  jobTitle: job.title,
-                  jobCompany: job.companyName,
-                  jobLocation: job.location,
-                  jobApplyUrl: job.applyOptions?.[0]?.apply_link,
-                  fallbackSkills: [],
-                })}
-                onRemove={() => saved && removeMutation.mutate(saved.jobExternalId)}
-                saving={saveMutation.isPending || removeMutation.isPending}
-                onOpen={() => job.jobId && setOpenJob({ jobExternalId: job.jobId })}
-              />
-
-            );
-          })}
+          {results?.jobs.map(job => (
+            <JobCard
+              key={job.jobId}
+              title={job.title}
+              company={job.companyName}
+              location={job.location}
+              tags={job.extensions ?? []}
+              tagsAreMeta
+              matched={savedByExternalId.has(job.jobId)}
+              onOpen={() => setOpenJob({ jobExternalId: job.jobId })}
+            />
+          ))}
         </div>
       )}
 
-      {/* Saved jobs */}
       {activeTab === 'saved' && (
         <div className={styles.jobList}>
           {loadingSaved && <Spinner center />}
 
           {!loadingSaved && savedJobs?.length === 0 && (
             <div className={styles.empty}>
-              <Bookmark size={40} color="var(--text-3)" />
-              <p>No saved jobs yet</p>
-              <p style={{ fontSize: 13 }}>Search and bookmark jobs to track them here</p>
+              <Target size={40} color="var(--text-3)" />
+              <p>No matched jobs yet</p>
+              <p style={{ fontSize: 13 }}>Open a job and match it with your CV to track it here</p>
             </div>
           )}
 
@@ -240,19 +211,15 @@ export const JobsPage = () => {
               location={saved.jobLocation}
               tags={saved.matchedSkills}
               compatibilityScore={saved.compatibilityScore}
-              isSaved
-              onSave={() => {}}
-              onRemove={() => removeMutation.mutate(saved.jobExternalId)}
-              saving={removeMutation.isPending}
-              // Try the real detail route; the saved record is the fallback.
+              matched
               onOpen={() => setOpenJob({ jobExternalId: saved.jobExternalId, saved })}
-              applyUrl={saved.jobApplyUrl}
+              onRemove={() => removeMutation.mutate(saved.jobExternalId)}
+              removing={removeMutation.isPending}
             />
           ))}
         </div>
       )}
 
-      {/* Job detail modal */}
       {openJob && (
         <div
           className={styles.overlay}
@@ -266,38 +233,29 @@ export const JobsPage = () => {
               <X size={18} />
             </button>
 
-            {loadingDetail ? (
+            {loadingDetail && !openSaved ? (
               <Spinner center />
-            ) : detail ? (
+            ) : detail || openSaved ? (
               <JobDetailView
-                title={detail.title}
-                company={detail.companyName}
-                location={detail.location}
-                description={detail.description}
-                skills={detail.extractedSkills ?? []}
-                applyUrl={detail.applyOptions?.[0]?.apply_link ?? openJob.saved?.jobApplyUrl}
-                saved={openJob.saved}
-                onClose={closeModal}
-              />
-            ) : openJob.saved ? (
-              <JobDetailView
-                title={openJob.saved.jobTitle}
-                company={openJob.saved.jobCompany}
-                location={openJob.saved.jobLocation}
-                description={undefined}
-                skills={openJob.saved.requiredSkills?.length
-                  ? openJob.saved.requiredSkills
-                  : openJob.saved.matchedSkills ?? []}
-                applyUrl={openJob.saved.jobApplyUrl}
-                saved={openJob.saved}
-                staleNotice
+                title={detail?.title ?? openSaved!.jobTitle}
+                company={detail?.companyName ?? openSaved?.jobCompany}
+                location={detail?.location ?? openSaved?.jobLocation}
+                description={detail?.description}
+                requiredSkills={detail?.extractedSkills}
+                applyOptions={detail?.applyOptions}
+                fallbackApplyUrl={openSaved?.jobApplyUrl}
+                saved={openSaved}
+                matching={matchMutation.isPending}
+                generating={roadmapMutation.isPending}
+                onMatch={() => matchMutation.mutate(openJob.jobExternalId)}
+                onGenerateRoadmap={() => openSaved && roadmapMutation.mutate(openSaved.id)}
                 onClose={closeModal}
               />
             ) : detailError ? (
               <div className={styles.modalContent}>
                 <p className={styles.empty}>
-                  We couldn't load the full description (it may have expired from the
-                  search cache). Try searching for this job again to refresh it.
+                  We couldn't load this job. It may have expired from the search cache —
+                  try searching for it again.
                 </p>
                 <div className={styles.modalActions}>
                   <button className="btn btn--ghost" onClick={closeModal}>Close</button>
@@ -313,21 +271,26 @@ export const JobsPage = () => {
   );
 };
 
-// ── Unified detail view ───────────────────────────────────────────────
 const JobDetailView = ({
-  title, company, location, description, skills, applyUrl, saved, staleNotice, onClose,
+  title, company, location, description, requiredSkills, applyOptions, fallbackApplyUrl,
+  saved, matching, generating, onMatch, onGenerateRoadmap, onClose,
 }: {
   title: string;
   company?: string;
   location?: string;
   description?: string;
-  skills: string[];
-  applyUrl?: string;
+  requiredSkills?: string[];
+  applyOptions?: ApplyOption[];
+  fallbackApplyUrl?: string;
   saved?: SavedJobResponse;
-  staleNotice?: boolean;
+  matching: boolean;
+  generating: boolean;
+  onMatch: () => void;
+  onGenerateRoadmap: () => void;
   onClose: () => void;
 }) => {
-  const link = postingUrl(title, company, applyUrl);
+  const links = (applyOptions ?? []).filter(o => httpLink(o.link));
+  const fallback = httpLink(fallbackApplyUrl) ?? fallbackPosting(title, company);
   const score = saved?.compatibilityScore;
 
   return (
@@ -337,72 +300,108 @@ const JobDetailView = ({
         {company && <span><Building2 size={13} />{company}</span>}
         {location && <span><MapPin size={13} />{location}</span>}
         {saved?.savedAt && (
-          <span>Saved {new Date(saved.savedAt).toLocaleDateString('en-GB', {
+          <span>Matched {new Date(saved.savedAt).toLocaleDateString('en-GB', {
             day: '2-digit', month: 'short', year: 'numeric',
           })}</span>
         )}
       </div>
 
-      {/* CV compatibility (saved jobs only) */}
-      {score != null && (
-        <div className={styles.matchBanner}>
-          <span className={`badge ${score >= 70 ? 'badge--green' : score >= 40 ? 'badge--yellow' : 'badge--red'}`}>
-            {score}% match with your CV
-          </span>
-        </div>
-      )}
-
-      {/* Skills you have / to learn (saved jobs carry this analysis) */}
-      {saved && saved.matchedSkills?.length > 0 && (
-        <div className={styles.detailSection}>
-          <h4 className={styles.detailHeading}><CheckCircle2 size={14} /> Skills you have</h4>
-          <div className={styles.modalSkills}>
-            {saved.matchedSkills.map(s => <span key={s} className="badge badge--green">{s}</span>)}
-          </div>
-        </div>
-      )}
-      {saved && saved.missingSkills?.length > 0 && (
-        <div className={styles.detailSection}>
-          <h4 className={styles.detailHeading}><Target size={14} /> Skills to learn</h4>
-          <div className={styles.modalSkills}>
-            {saved.missingSkills.map(s => <span key={s} className="badge badge--red">{s}</span>)}
-          </div>
-        </div>
-      )}
-
-      {/* Extracted skills (search-result detail, when not a saved job) */}
-      {!saved && skills.length > 0 && (
-        <div className={styles.modalSkills}>
-          {skills.slice(0, 12).map(s => <span key={s} className="badge badge--accent">{s}</span>)}
-        </div>
-      )}
-
-      {/* Full description (when the detail route served it) */}
-      {description ? (
+      {description && (
         <div className={styles.modalBody}>
           <p>{description}</p>
         </div>
-      ) : staleNotice ? (
-        <p className={styles.detailNote}>
-          The full description isn't cached anymore. Everything you saved is shown above —
-          open the original posting for the complete details.
-        </p>
-      ) : null}
+      )}
+
+      {!saved && requiredSkills && requiredSkills.length > 0 && (
+        <div className={styles.detailSection}>
+          <h4 className={styles.detailHeading}><Target size={14} /> Required skills</h4>
+          <div className={styles.modalSkillsInline}>
+            {requiredSkills.slice(0, 14).map(s => <span key={s} className="badge badge--accent">{s}</span>)}
+          </div>
+        </div>
+      )}
+
+      <div className={styles.detailSection}>
+        <h4 className={styles.detailHeading}><ExternalLink size={14} /> Apply</h4>
+        <div className={styles.applyList}>
+          {links.length > 0 ? (
+            links.map((o, i) => (
+              <a
+                key={i}
+                href={o.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn--soft btn--sm"
+              >
+                {o.title ?? 'Apply'} <ExternalLink size={12} />
+              </a>
+            ))
+          ) : (
+            <a href={fallback} target="_blank" rel="noopener noreferrer" className="btn btn--soft btn--sm">
+              View posting <ExternalLink size={12} />
+            </a>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.detailSection}>
+        <h4 className={styles.detailHeading}><Target size={14} /> CV match</h4>
+
+        {!saved ? (
+          <button className="btn btn--primary" onClick={onMatch} disabled={matching}>
+            {matching ? <Spinner size={16} color="#fff" /> : <Sparkles size={14} />}
+            Match with my CV
+          </button>
+        ) : (
+          <>
+            {score != null && (
+              <div className={styles.matchBanner}>
+                <span className={`badge ${score >= 70 ? 'badge--green' : score >= 40 ? 'badge--yellow' : 'badge--red'}`}>
+                  {score}% match with your CV
+                </span>
+              </div>
+            )}
+
+            {saved.matchedSkills?.length > 0 && (
+              <div className={styles.skillGroup}>
+                <p className={styles.skillGroupLabel}><CheckCircle2 size={13} /> Skills you have</p>
+                <div className={styles.modalSkillsInline}>
+                  {saved.matchedSkills.map(s => <span key={s} className="badge badge--green">{s}</span>)}
+                </div>
+              </div>
+            )}
+
+            {saved.missingSkills?.length > 0 && (
+              <div className={styles.skillGroup}>
+                <p className={styles.skillGroupLabel}><Target size={13} /> Skills to learn</p>
+                <div className={styles.modalSkillsInline}>
+                  {saved.missingSkills.map(s => <span key={s} className="badge badge--red">{s}</span>)}
+                </div>
+                <button
+                  className="btn btn--primary btn--sm"
+                  style={{ marginTop: 12 }}
+                  onClick={onGenerateRoadmap}
+                  disabled={generating}
+                >
+                  {generating ? <Spinner size={15} color="#fff" /> : <MapIcon size={13} />}
+                  Generate learning roadmap
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <div className={styles.modalActions}>
-        <a href={link} target="_blank" rel="noopener noreferrer" className="btn btn--primary">
-          <ExternalLink size={14} /> View original posting
-        </a>
         <button className="btn btn--ghost" onClick={onClose}>Close</button>
       </div>
     </div>
   );
 };
 
-// ── Job Card ──────────────────────────────────────────────────────────
 const JobCard = ({
   title, company, location, tags, compatibilityScore, tagsAreMeta,
-  isSaved, onSave, onRemove, saving, onOpen, applyUrl,
+  matched, onOpen, onRemove, removing,
 }: {
   title: string;
   company?: string;
@@ -410,14 +409,12 @@ const JobCard = ({
   tags?: string[];
   compatibilityScore?: number;
   tagsAreMeta?: boolean;
-  isSaved: boolean;
-  onSave: () => void;
-  onRemove: () => void;
-  saving: boolean;
-  onOpen?: () => void;
-  applyUrl?: string;
+  matched?: boolean;
+  onOpen: () => void;
+  onRemove?: () => void;
+  removing?: boolean;
 }) => (
-  <div className={styles.jobCard} onClick={() => onOpen?.()}>
+  <div className={styles.jobCard} onClick={onOpen}>
     <div className={styles.jobHeader}>
       <div className={styles.jobTitleRow}>
         <h3 className={styles.jobTitle}>{title}</h3>
@@ -428,6 +425,9 @@ const JobCard = ({
           }`}>
             {compatibilityScore}% match
           </span>
+        )}
+        {matched && compatibilityScore == null && (
+          <span className="badge badge--green">Matched</span>
         )}
       </div>
       <div className={styles.jobMeta}>
@@ -446,30 +446,18 @@ const JobCard = ({
         )}
       </div>
 
-      <div className={styles.jobActions} onClick={e => e.stopPropagation()}>
-        {applyUrl && (
-          <a
-            href={applyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn--soft btn--sm"
-            title="Apply"
+      {onRemove && (
+        <div className={styles.jobActions} onClick={e => e.stopPropagation()}>
+          <button
+            className="btn btn--danger btn--sm"
+            onClick={onRemove}
+            disabled={removing}
+            title="Remove from saved"
           >
-            <ExternalLink size={13} />
-          </a>
-        )}
-        <button
-          className={`btn btn--ghost btn--sm ${styles.bookmarkBtn}`}
-          onClick={() => (isSaved ? onRemove : onSave)()}
-          disabled={saving}
-          title={isSaved ? 'Remove from saved' : 'Save job'}
-        >
-          {isSaved
-            ? <BookmarkCheck size={15} color="var(--accent)" />
-            : <Bookmark size={15} />
-          }
-        </button>
-      </div>
+            {removing ? <Spinner size={14} /> : <Trash2 size={14} />}
+          </button>
+        </div>
+      )}
     </div>
   </div>
 );

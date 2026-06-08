@@ -47,9 +47,22 @@ export const CvPage = () => {
     onError: () => toast.error('Could not delete this CV'),
   });
 
+  const isPdf = (file: File) =>
+    file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+  const submitFile = (file: File) => {
+    if (!isPdf(file)) {
+      const msg = 'Only PDF files are supported.';
+      setUploadError(msg);
+      toast.error(msg);
+      return;
+    }
+    uploadMutation.mutate(file);
+  };
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) uploadMutation.mutate(file);
+    if (file) submitFile(file);
     e.target.value = '';
   };
 
@@ -57,7 +70,7 @@ export const CvPage = () => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file) uploadMutation.mutate(file);
+    if (file) submitFile(file);
   };
 
   return (
@@ -77,7 +90,7 @@ export const CvPage = () => {
         aria-label="Upload CV"
         onKeyDown={e => e.key === 'Enter' && fileRef.current?.click()}
       >
-        <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" hidden onChange={handleFile} />
+        <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={handleFile} />
         {uploadMutation.isPending ? (
           <>
             <Spinner size={32} />
@@ -89,7 +102,7 @@ export const CvPage = () => {
               <Upload size={24} />
             </div>
             <p>Drop your CV here or <span>browse files</span></p>
-            <small>PDF, DOC, DOCX · up to 10 MB</small>
+            <small>PDF only · up to 10 MB</small>
           </>
         )}
       </div>

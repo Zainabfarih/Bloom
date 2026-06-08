@@ -315,3 +315,29 @@
   padding: 3px 10px;
   border-radius: 100px;
 }
+
+.applyList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skillGroup {
+  margin-bottom: 16px;
+}
+
+.skillGroupLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+
+.modalSkillsInline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
