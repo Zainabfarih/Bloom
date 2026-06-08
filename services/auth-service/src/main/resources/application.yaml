@@ -24,6 +24,14 @@ spring:
   cloud:
     config:
       enabled: false
+  boot:
+    admin:
+      client:
+        url: ${ADMIN_SERVER_URL:http://localhost:8090}
+        username: admin
+        password: admin
+        instance:
+          prefer-ip: true
   mail:
     host: ${MAIL_HOST}
     port: 587
@@ -50,5 +58,35 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
-    fetch-registry: false
-    register-with-eureka: false
+    fetch-registry: true
+    register-with-eureka: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+  endpoint:
+    health:
+      show-details: always
+  health:
+    mail:
+      enabled: false   # SMTP indisponible ne doit pas marquer le service DOWN
+    config:
+      enabled: false   # auth n'utilise pas le config-server (cloud.config.enabled=false)
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}

@@ -13,6 +13,18 @@ management:
   endpoint:
     health:
       show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      # Tag commun ajoute a toutes les metriques => permet de filtrer par service dans Grafana
+      application: ${spring.application.name:unknown}
+    distribution:
+      # Active les histogrammes pour calculer les latences (p95/p99) cote Prometheus
+      percentiles-histogram:
+        http.server.requests: true
   tracing:
     sampling:
       probability: 1.0

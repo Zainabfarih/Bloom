@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: 'bloom'
+    orgId: 1
+    folder: 'Bloom'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

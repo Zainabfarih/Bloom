@@ -15,6 +15,15 @@ resources:
   - 30-api-gateway.yaml
   - 31-admin-server.yaml
   - 35-frontend.yaml
+  # --- Observabilite : metriques ---
+  - 40-prometheus.yaml
+  - 41-grafana.yaml
+  - 42-grafana-dashboards.yaml
+  # --- Observabilite : logs ---
+  - 43-loki.yaml
+  - 44-promtail.yaml
+  # --- Observabilite : tracing ---
+  - 45-zipkin.yaml
 
 # ConfigMap servie au config-server (profil native) depuis config-repo/
 configMapGenerator:

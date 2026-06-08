@@ -5,30 +5,11 @@ networks:
     driver: bridge
 
 volumes:
-  postgres-data:
   redis-data:
+  grafana-data:
+  loki-data:
 
 services:
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: bloom-postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-bloom}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bloom}
-      POSTGRES_DB: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bloom}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - bloom-net
 
   redis:
     image: redis:7-alpine
@@ -51,6 +32,10 @@ services:
       context: ./infrastructure/discovery-server
     image: bloom/discovery-server:latest
     container_name: bloom-discovery
+    environment:
+      # DEV : self-preservation OFF + eviction rapide (en prod/k8s : valeurs par defaut = ON / 60s)
+      EUREKA_SELF_PRESERVATION: "false"
+      EUREKA_EVICTION_INTERVAL_MS: "15000"
     ports:
       - "8761:8761"
     healthcheck:
@@ -81,9 +66,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8888/actuator/health || exit 1"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 40s
+      start_period: 180s
     networks:
       - bloom-net
 
@@ -97,9 +82,11 @@ services:
       CONFIG_SERVER_PROFILE: native
       EUREKA_URI: http://discovery-server:8761/eureka/
       ADMIN_SERVER_URL: http://admin-server:8090
-      DB_JOB_URL: jdbc:postgresql://postgres:5432/bloom_jobs
-      DB_JOB_USERNAME: ${POSTGRES_USER:-bloom}
-      DB_JOB_PASSWORD: ${POSTGRES_PASSWORD:-bloom}
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+      # Base de donnees externe (Azure) fournie via .env
+      DB_JOB_URL: ${DB_JOB_URL}
+      DB_JOB_USERNAME: ${DB_JOB_USERNAME}
+      DB_JOB_PASSWORD: ${DB_JOB_PASSWORD}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
@@ -110,8 +97,6 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       config-server:
@@ -121,9 +106,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8083/actuator/health || exit 1"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 240s
     networks:
       - bloom-net
 
@@ -135,11 +120,14 @@ services:
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       CONFIG_SERVER_PROFILE: native
+      SERVER_PORT: "8082"
       EUREKA_URI: http://discovery-server:8761/eureka/
       ADMIN_SERVER_URL: http://admin-server:8090
-      DB_CV_URL: jdbc:postgresql://postgres:5432/bloom_cv
-      DB_CV_USERNAME: ${POSTGRES_USER:-bloom}
-      DB_CV_PASSWORD: ${POSTGRES_PASSWORD:-bloom}
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+      # Base de donnees externe (Azure) fournie via .env
+      DB_CV_URL: ${DB_CV_URL}
+      DB_CV_USERNAME: ${DB_CV_USERNAME}
+      DB_CV_PASSWORD: ${DB_CV_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
       GEMINI_API_KEY_CV: ${GEMINI_API_KEY_CV:-}
@@ -147,8 +135,6 @@ services:
     ports:
       - "8082:8082"
     depends_on:
-      postgres:
-        condition: service_healthy
       config-server:
         condition: service_healthy
       discovery-server:
@@ -156,9 +142,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health || exit 1"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 240s
     networks:
       - bloom-net
 
@@ -170,6 +156,7 @@ services:
     environment:
       EUREKA_URI: http://discovery-server:8761/eureka/
       ADMIN_SERVER_URL: http://admin-server:8090
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
     ports:
@@ -194,5 +181,154 @@ services:
     depends_on:
       discovery-server:
         condition: service_started
+    networks:
+      - bloom-net
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+    image: bloom/auth-service:latest
+    container_name: bloom-auth
+    environment:
+      EUREKA_URI: http://discovery-server:8761/eureka/
+      ADMIN_SERVER_URL: http://admin-server:8090
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+      # Base de donnees externe (Azure / Supabase) fournie via .env
+      DB_AUTH_URL: ${DB_AUTH_URL}
+      DB_AUTH_USER: ${DB_AUTH_USER}
+      DB_AUTH_PASS: ${DB_AUTH_PASS}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASS: ${MAIL_PASS:-}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    ports:
+      - "8081:8081"
+    depends_on:
+      discovery-server:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - bloom-net
+
+  roadmap-service:
+    build:
+      context: ./services/roadmap-service
+    image: bloom/roadmap-service:latest
+    container_name: bloom-roadmap
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      CONFIG_SERVER_PROFILE: native
+      EUREKA_URI: http://discovery-server:8761/eureka/
+      ADMIN_SERVER_URL: http://admin-server:8090
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+      # Base de donnees externe (Azure / Supabase) fournie via .env
+      DB_ROADMAP_URL: ${DB_ROADMAP_URL}
+      DB_ROADMAP_USERNAME: ${DB_ROADMAP_USERNAME}
+      DB_ROADMAP_PASSWORD: ${DB_ROADMAP_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
+      GEMINI_API_KEY_ROADMAP: ${GEMINI_API_KEY_ROADMAP:-}
+      GEMINI_MODEL_ROADMAP: ${GEMINI_MODEL_ROADMAP:-gemini-2.0-flash}
+    ports:
+      - "8085:8085"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8085/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 240s
+    networks:
+      - bloom-net
+
+  frontend:
+    build:
+      context: ./frontend
+    image: bloom/frontend:latest
+    container_name: bloom-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - bloom-net
+
+  # ─── OBSERVABILITE : metriques ──────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: bloom-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - bloom-net
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: bloom-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infrastructure/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - bloom-net
+
+  # ─── OBSERVABILITE : logs ───────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: bloom-loki
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes:
+      - ./infrastructure/monitoring/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - bloom-net
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: bloom-promtail
+    command: ["-config.file=/etc/promtail/promtail-config.yaml"]
+    volumes:
+      - ./infrastructure/monitoring/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    networks:
+      - bloom-net
+
+  # ─── OBSERVABILITE : tracing ────────────────────────────────────────
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: bloom-zipkin
+    environment:
+      STORAGE_TYPE: mem
+    ports:
+      - "9411:9411"
     networks:
       - bloom-net

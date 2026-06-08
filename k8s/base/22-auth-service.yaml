@@ -21,7 +21,7 @@ metadata:
   name: auth-service
   namespace: bloom
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: auth-service
@@ -40,6 +40,12 @@ spec:
             - name: EUREKA_URI
               valueFrom:
                 configMapKeyRef: { name: bloom-config, key: EUREKA_URI }
+            - name: ZIPKIN_URL
+              valueFrom:
+                configMapKeyRef: { name: bloom-config, key: ZIPKIN_URL }
+            - name: ADMIN_SERVER_URL
+              valueFrom:
+                configMapKeyRef: { name: bloom-config, key: ADMIN_SERVER_URL }
             - name: FRONTEND_URL
               valueFrom:
                 configMapKeyRef: { name: bloom-config, key: FRONTEND_URL }
@@ -99,8 +105,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: auth-service
-  minReplicas: 2
-  maxReplicas: 3
+  minReplicas: 1
+  maxReplicas: 2
   metrics:
     - type: Resource
       resource:
