@@ -97,8 +97,8 @@ development-platform-bloom/
 
 | Layer | Choice |
 |---|---|
-| **Backend** | Spring Boot 3 + Spring Cloud (Config, Eureka, Gateway) |
-| **Frontend** | React 19 + TypeScript, Vite, React Router, Zustand, React Query, React Hook Form + Zod, Axios |
+| **Backend** | Spring Boot + Spring Cloud (Config, Eureka, Gateway) |
+| **Frontend** | React + TypeScript, Vite, React Router, Zustand, React Query, React Hook Form + Zod, Axios |
 | **Database** | PostgreSQL — one database per service (managed: Supabase / Azure) |
 | **Persistence** | Spring Data JPA + Flyway migrations (schema + seed) |
 | **Connection pool** | HikariCP |
