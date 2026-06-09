@@ -24,14 +24,24 @@ public class AuthService {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
+    private final EmailVerificationService emailVerificationService;
 
     @Value("${app.max-failed-login-attempts:5}")
     private int maxFailedAttempts;
 
+    /**
+     * Inscription : crée le user en {@code emailVerified=false} et envoie le mail
+     * de vérification. Aucun token n'est retourné — le user doit valider son
+     * email puis s'authentifier via {@link #login}.
+     *
+     * <p>Si l'envoi du mail échoue, la transaction est rollback et l'inscription
+     * est annulée pour permettre à l'utilisateur de réessayer sans collision
+     * sur l'email.</p>
+     */
     @Transactional
-    public AuthResponse register(RegisterRequest req) {
+    public RegisterResponse register(RegisterRequest req) {
         if (userRepository.existsByEmail(req.getEmail())) {
-            throw new IllegalArgumentException("Email already in use");
+            throw new IllegalArgumentException("Email déjà utilisé.");
         }
         User user = userRepository.save(User.builder()
                 .firstName(req.getFirstName())
@@ -39,11 +49,21 @@ public class AuthService {
                 .email(req.getEmail())
                 .password(passwordEncoder.encode(req.getPassword()))
                 .role(Role.STUDENT)
+                .emailVerified(false)
                 .build());
 
-        return buildAuthResponse(user);
+        emailVerificationService.initiateVerification(user);
+
+        log.info("Compte créé en attente de vérification — email={}", user.getEmail());
+        return RegisterResponse.builder()
+                .email(user.getEmail())
+                .message("Compte créé. Un email de vérification vient de vous être envoyé.")
+                .build();
     }
 
+    /**
+     * Login : refuse si compte verrouillé, identifiants invalides ou email non vérifié.
+     */
     public AuthResponse login(LoginRequest req) {
         User user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
@@ -64,6 +84,13 @@ public class AuthService {
         if (user.getFailedLoginAttempts() > 0) {
             user.setFailedLoginAttempts(0);
             userRepository.save(user);
+        }
+
+        // Vérification d'email — vérifié APRÈS l'authentification pour ne pas
+        // révéler l'existence d'un compte à un attaquant qui n'a pas le password.
+        if (!user.isEmailVerified()) {
+            throw new DisabledException(
+                    "Email non vérifié. Consultez votre boîte mail ou demandez un renvoi.");
         }
 
         return buildAuthResponse(user);

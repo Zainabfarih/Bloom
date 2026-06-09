@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +37,7 @@ class AuthServiceTest {
     @Mock private JwtService jwtService;
     @Mock private RefreshTokenService refreshTokenService;
     @Mock private AuthenticationManager authenticationManager;
+    @Mock private EmailVerificationService emailVerificationService;
 
     @InjectMocks
     private AuthService authService;
@@ -54,6 +56,7 @@ class AuthServiceTest {
                 .email("alice@bloom.dev")
                 .password("$2a$12$encoded")
                 .role(Role.STUDENT)
+                .emailVerified(true) // par défaut on teste un compte déjà validé
                 .build();
 
         refreshToken = RefreshToken.builder()
@@ -67,8 +70,8 @@ class AuthServiceTest {
     // ─── register ──────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("register : succès — crée l'utilisateur, hash le password, retourne tokens")
-    void register_creates_user_and_returns_tokens() {
+    @DisplayName("register : succès — crée l'utilisateur non vérifié, déclenche le mail, retourne RegisterResponse")
+    void register_creates_user_and_triggers_verification_email() {
         RegisterRequest req = new RegisterRequest();
         req.setFirstName("Alice");
         req.setLastName("Martin");
@@ -77,21 +80,26 @@ class AuthServiceTest {
 
         when(userRepository.existsByEmail("alice@bloom.dev")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("$2a$12$encoded");
-        when(userRepository.save(any(User.class))).thenReturn(user);
-        when(jwtService.generateAccessToken(user)).thenReturn("jwt-token");
-        when(refreshTokenService.createRefreshToken(1L)).thenReturn(refreshToken);
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+            User saved = inv.getArgument(0);
+            saved.setId(42L);
+            return saved;
+        });
 
-        AuthResponse response = authService.register(req);
+        RegisterResponse response = authService.register(req);
 
-        assertThat(response.getAccessToken()).isEqualTo("jwt-token");
-        assertThat(response.getRefreshToken()).isEqualTo("refresh-uuid");
-        assertThat(response.getTokenType()).isEqualTo("Bearer");
-        assertThat(response.getUser().getEmail()).isEqualTo("alice@bloom.dev");
+        assertThat(response.getEmail()).isEqualTo("alice@bloom.dev");
+        assertThat(response.getMessage()).contains("vérification");
+
+        verify(emailVerificationService).initiateVerification(any(User.class));
         verify(userRepository).save(any(User.class));
+        // pas de génération de token JWT à l'inscription
+        verifyNoInteractions(jwtService);
+        verifyNoInteractions(refreshTokenService);
     }
 
     @Test
-    @DisplayName("register : email déjà utilisé → IllegalArgumentException")
+    @DisplayName("register : email déjà utilisé → IllegalArgumentException, pas d'email envoyé")
     void register_throws_when_email_already_in_use() {
         RegisterRequest req = new RegisterRequest();
         req.setEmail("alice@bloom.dev");
@@ -103,9 +111,10 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.register(req))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Email already in use");
+                .hasMessageContaining("déjà");
 
         verify(userRepository, never()).save(any());
+        verifyNoInteractions(emailVerificationService);
     }
 
     // ─── login ─────────────────────────────────────────────────────────
@@ -129,7 +138,7 @@ class AuthServiceTest {
 
         assertThat(response.getAccessToken()).isEqualTo("jwt");
         assertThat(user.getFailedLoginAttempts()).isZero();
-        verify(userRepository).save(user); // reset persistence
+        verify(userRepository).save(user);
     }
 
     @Test
@@ -177,13 +186,33 @@ class AuthServiceTest {
                 .isInstanceOf(BadCredentialsException.class)
                 .hasMessageContaining("Invalid email or password");
 
-        verify(userRepository).save(any(User.class)); // recordFailedLogin sauve l'incrément
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("login : email non vérifié → DisabledException, pas de tokens")
+    void login_throws_when_email_not_verified() {
+        user.setEmailVerified(false);
+
+        LoginRequest req = new LoginRequest();
+        req.setEmail("alice@bloom.dev");
+        req.setPassword("password123");
+
+        when(userRepository.findByEmail("alice@bloom.dev")).thenReturn(Optional.of(user));
+        when(authenticationManager.authenticate(any())).thenReturn(null);
+
+        assertThatThrownBy(() -> authService.login(req))
+                .isInstanceOf(DisabledException.class)
+                .hasMessageContaining("non vérifié");
+
+        verifyNoInteractions(jwtService);
+        verifyNoInteractions(refreshTokenService);
     }
 
     @Test
     @DisplayName("recordFailedLogin : verrouille le compte au seuil maxFailedAttempts")
     void recordFailedLogin_locks_account_at_threshold() {
-        user.setFailedLoginAttempts(4); // un de moins que 5
+        user.setFailedLoginAttempts(4);
         when(userRepository.findByEmail("alice@bloom.dev")).thenReturn(Optional.of(user));
 
         authService.recordFailedLogin("alice@bloom.dev");
