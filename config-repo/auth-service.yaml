@@ -19,7 +19,7 @@ spring:
       connection-timeout: 30000
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -27,6 +27,12 @@ spring:
       connection:
         ssl: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    out-of-order: false
+    baseline-on-migrate: true
   mail:
     host: ${MAIL_HOST}
     port: 587
