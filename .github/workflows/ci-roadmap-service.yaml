@@ -15,7 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MVN: "mvn -B --no-transfer-progress"
+  # -U force la re-résolution des dépendances : évite les "package does not exist"
+  # quand le cache Maven de CI contient un marqueur d'échec (.lastUpdated) pour une
+  # dépendance récemment ajoutée (ici spring-boot-starter-webmvc-test).
+  MVN: "mvn -B --no-transfer-progress -U"
 
 jobs:
 
