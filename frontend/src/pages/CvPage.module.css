@@ -1,3 +1,12 @@
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
 .dropzone {
   border: 2px dashed var(--border-2);
   border-radius: var(--radius-lg);
