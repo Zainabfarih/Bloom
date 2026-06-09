@@ -54,6 +54,14 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean deleted = false;
 
+    /**
+     * True une fois que le user a cliqué sur le lien de vérification reçu par mail.
+     * Login refusé tant que false. Indépendant de {@link #enabled} (= soft-delete).
+     */
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private boolean emailVerified = false;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
