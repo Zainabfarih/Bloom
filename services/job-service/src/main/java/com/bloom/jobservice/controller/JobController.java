@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Endpoints REST des offres : recherche (cache 24h), détail + skills,
+ * favoris avec matching, écart de compétences et purge de cache (admin).
+ */
 @RestController
 @RequestMapping("/api/job")
 @RequiredArgsConstructor
@@ -23,8 +27,6 @@ public class JobController {
 
     private final JobService jobService;
     private final SavedJobService savedJobService;
-
-    // ─── Search ──────────────────────────────────────────────────────────────
 
     @GetMapping("/search")
     @Operation(summary = "Search jobs — résultats SerpAPI, cached 24h, sans skills (lazy extraction)")
@@ -35,8 +37,6 @@ public class JobController {
         return ResponseEntity.ok(jobService.searchJobs(query, location));
     }
 
-    // ─── Job details ──────────────────────────────────────────────────────────────
-
     @GetMapping("/{jobId}")
     @Operation(summary = "Détail d'un job + skills extraits — nécessite un search préalable")
     public ResponseEntity<JobDetailResponse> getJobDetail(
@@ -45,7 +45,6 @@ public class JobController {
         return ResponseEntity.ok(jobService.getJobDetail(jobId));
     }
 
-    // ─── Skill gap details ──────────────────────────────────────────────────────────────
     @GetMapping("/skill-gap")
     @Operation(summary = "Internal — consumed by roadmap-service via Feign")
     public ResponseEntity<SkillGapResponse> getSkillGap(
@@ -54,8 +53,6 @@ public class JobController {
 
         return ResponseEntity.ok(savedJobService.getSkillGap(userId, targetJobId));
     }
-
-    // ─── Favourites ──────────────────────────────────────────────────────────
 
     @PostMapping("/saved/{jobId}")
     @Operation(summary = "Save a job by its jobId (déjà présent en cache via /search) — "
@@ -99,8 +96,6 @@ public class JobController {
         savedJobService.removeSavedJob(userId, jobExternalId);
         return ResponseEntity.noContent().build();
     }
-
-    // ─── Admin ───────────────────────────────────────────────────────────────
 
     @DeleteMapping("/admin/cache")
     @PreAuthorize("hasRole('ADMIN')")

@@ -17,6 +17,10 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Extrait les compétences techniques d'une offre via Gemini, avec repli
+ * sur un modèle Hugging Face (JobBERT) en cas d'échec.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -28,16 +32,14 @@ public class JobSkillExtractor {
     @Value("${skill.extractor.hf.model-url}")
     private String hfModelUrl;
 
-    private static final String GEMINI_MODEL   = "gemini-2.5-flash";
-    private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
-    private static final int    MAX_CHARS       = 3000;
+    @Value("${skill.extractor.gemini.base-url:https://generativelanguage.googleapis.com/v1beta/models/}")
+    private String geminiBaseUrl;
+
+    private static final String GEMINI_MODEL = "gemini-2.5-flash";
+    private static final int    MAX_CHARS    = 3000;
 
     private final ObjectMapper mapper;
-
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+    private final HttpClient httpClient;
 
     public List<String> extract(String description) {
         if (description == null || description.isBlank()) return List.of();
@@ -57,7 +59,7 @@ public class JobSkillExtractor {
                     "responseMimeType", "application/json"
             ));
 
-            String url = GEMINI_BASE_URL + GEMINI_MODEL + ":generateContent?key="
+            String url = geminiBaseUrl + GEMINI_MODEL + ":generateContent?key="
                     + URLEncoder.encode(geminiApiKey.trim(), StandardCharsets.UTF_8);
 
             HttpResponse<String> resp = httpClient.send(

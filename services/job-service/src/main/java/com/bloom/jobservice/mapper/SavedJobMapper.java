@@ -5,6 +5,7 @@ import com.bloom.jobservice.entity.SavedJob;
 import com.bloom.jobservice.entity.SkillType;
 import org.springframework.stereotype.Component;
 
+/** Convertit les entités SavedJob en DTO exposés par l'API. */
 @Component
 public class SavedJobMapper {
 

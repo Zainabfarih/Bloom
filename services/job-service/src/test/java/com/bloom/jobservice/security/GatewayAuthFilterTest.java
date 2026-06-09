@@ -34,8 +34,7 @@ class GatewayAuthFilterTest {
         SecurityContextHolder.clearContext();
     }
 
-    // ─── Scénario 1 : via Gateway ────────────────────────────────────────────
-
+    // Scénario 1 : via Gateway
     @Test
     @DisplayName("X-User-Id + X-User-Role → Authentication créée (cas principal après Gateway)")
     void creates_auth_from_gateway_headers() throws Exception {
@@ -113,8 +112,7 @@ class GatewayAuthFilterTest {
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
-    // ─── Scénario 2 : appel direct service-à-service avec Bearer ───────────────
-
+    // Scénario 2 : appel direct service-à-service avec Bearer
     @Test
     @DisplayName("Bearer JWT valide (appel direct Feign) → Authentication créée")
     void creates_auth_from_direct_bearer_token() throws Exception {
@@ -150,8 +148,7 @@ class GatewayAuthFilterTest {
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
-    // ─── Aucun header ──────────────────────────────────────────────────────────
-
+    // Aucun header
     @Test
     @DisplayName("Aucun header → Authentication null (requête non passée par Gateway ou /actuator)")
     void no_headers_no_auth() throws Exception {
