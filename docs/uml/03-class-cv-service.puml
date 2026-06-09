@@ -1,0 +1,31 @@
+@startuml class-cv-service
+
+class Cv {
+  -Long id
+  -UUID uuid
+  -Long userId
+  -String title
+  -CvSource source
+  -String originalFilename
+  -String contentType
+  -byte[] fileData
+  -Long fileSize
+  -String description
+  -boolean active
+  -Instant createdAt
+  -Instant updatedAt
+}
+
+class CvSkill {
+  -String skillName
+}
+
+enum CvSource {
+  UPLOAD
+  MANUAL
+}
+
+Cv "1" --> "1" CvSource
+Cv "1" *-- "0..*" CvSkill
+
+@enduml

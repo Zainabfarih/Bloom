@@ -1,0 +1,52 @@
+@startuml sequence-job-matching
+autonumber
+actor "Étudiant" as User
+participant "Frontend (React)" as FE
+participant "API Gateway" as GW
+participant "job-service" as JOB
+participant "Redis" as REDIS
+participant "SerpAPI" as SERP
+participant "JobSkillExtractor (IA)" as AI
+participant "SkillMatchingService" as MATCH
+participant "cv-service" as CV
+database "bloom_jobs" as DB
+
+group Recherche d'offres
+  User -> FE : recherche (query, location)
+  FE -> GW : GET /api/job/search
+  GW -> JOB : GET /api/job/search
+  JOB -> REDIS : get(searchKey)
+  alt Cache HIT
+    REDIS --> JOB : List<JobResult>
+  else Cache MISS
+    JOB -> SERP : google_jobs(query, location)
+    SERP --> JOB : jobsResults
+    JOB -> REDIS : set(searchKey, results, TTL 24h)
+  end
+  JOB --> GW : JobSearchResponse
+  GW --> FE : liste d'offres
+  FE --> User : affiche les offres
+end
+
+group Sauvegarde d'une offre + matching
+  User -> FE : sauvegarde une offre (jobId)
+  FE -> GW : POST /api/job/saved/{jobId}
+  GW -> JOB : POST /api/job/saved/{jobId} (X-User-Id, X-Gateway-Secret)
+  JOB -> JOB : getJobForSave(jobId)
+  JOB -> REDIS : skills du job en cache ?
+  alt Skills absents du cache
+    JOB -> AI : extract(description)
+    AI --> JOB : skills requis
+    JOB -> REDIS : set(detailKey, skills, TTL 24h)
+  end
+  JOB -> CV : GET /api/cv/users/{userId}/skills (Feign)
+  CV --> JOB : SkillsDTO (skills du CV actif)
+  JOB -> MATCH : computeScore / findMatched / findMissing
+  MATCH --> JOB : score, matched, missing
+  JOB -> DB : save(SavedJob + SavedJobSkill)
+  JOB --> GW : 201 SavedJobResponse(score, matched, missing)
+  GW --> FE : SavedJobResponse
+  FE --> User : affiche compatibilité + compétences manquantes
+end
+
+@enduml
