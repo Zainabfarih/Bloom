@@ -14,6 +14,7 @@ import { LoginPage }          from './pages/LoginPage';
 import { RegisterPage }       from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage }  from './pages/ResetPasswordPage';
+import { VerifyEmailPage }    from './pages/VerifyEmailPage';
 import { HomePage }           from './pages/HomePage';
 import { AboutPage }          from './pages/AboutPage';
 import { DashboardPage }      from './pages/DashboardPage';
@@ -75,6 +76,7 @@ export function App() {
                 <Route path="/register"        element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password"  element={<ResetPasswordPage />} />
+                <Route path="/verify-email"    element={<VerifyEmailPage />} />
 
                 {/* Protected — all share AppLayout */}
                 <Route element={<ProtectedRoute />}>

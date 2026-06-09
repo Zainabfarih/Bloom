@@ -1,14 +1,12 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { Flower2, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Flower2, Eye, EyeOff, AlertCircle, Mail, ArrowLeft } from 'lucide-react';
 import { authApi } from '../api/auth.api';
-import { useAuthStore } from '../store/auth.store';
 import { Spinner } from '../components/ui/Spinner';
 import styles from './Auth.module.css';
-import { useQueryClient } from '@tanstack/react-query';
 
 const schema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
@@ -24,12 +22,10 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export const RegisterPage = () => {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const setTokens = useAuthStore(s => s.setTokens);
-  const setUser   = useAuthStore(s => s.setUser);
   const [serverError, setServerError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   const {
     register,
@@ -44,16 +40,73 @@ export const RegisterPage = () => {
   const onSubmit = async (data: FormData) => {
     setServerError('');
     try {
-      const res = await authApi.register(data);
-      queryClient.clear(); 
-      setTokens(res.accessToken, res.refreshToken);
-      setUser(res.user);
-      navigate('/dashboard', { replace: true });
+      // No tokens are returned — the account is created unverified and a
+      // verification email is sent. The user must verify before logging in.
+      await authApi.register(data);
+      setRegisteredEmail(data.email);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setServerError(e?.response?.data?.message ?? 'Registration failed. Please try again.');
     }
   };
+
+  const handleResend = async () => {
+    if (!registeredEmail) return;
+    setResendState('sending');
+    try {
+      await authApi.resendVerification(registeredEmail);
+    } finally {
+      setResendState('sent');
+    }
+  };
+
+  // ── Success state: account created, verification email sent ──────────────
+  if (registeredEmail) {
+    return (
+      <div className={styles.authPage}>
+        <div className={styles.card}>
+          <div className={styles.logo}>
+            <div className={styles.logoIcon}><Flower2 size={18} /></div>
+            <span className={styles.logoName}>Bloom</span>
+          </div>
+
+          <div className={styles.successIcon}>
+            <Mail size={24} />
+          </div>
+          <h1 className={styles.title}>Verify your email</h1>
+          <p className={styles.subtitle}>
+            We sent a verification link to <strong style={{ color: 'var(--text)' }}>
+              {registeredEmail}
+            </strong>. Click it to activate your account, then sign in. The link
+            expires in 24 hours.
+          </p>
+
+          {resendState === 'sent' ? (
+            <p className={styles.successMsg} role="status">
+              <Mail size={14} />If an account exists for that email, a new link is on its way.
+            </p>
+          ) : (
+            <button
+              type="button"
+              className="btn btn--ghost btn--full"
+              onClick={handleResend}
+              disabled={resendState === 'sending'}
+            >
+              {resendState === 'sending'
+                ? <Spinner size={16} />
+                : "Didn't get it? Resend email"}
+            </button>
+          )}
+
+          <div style={{ marginTop: 12 }}>
+            <Link to="/login" className="btn btn--primary btn--full">
+              <ArrowLeft size={15} /> Back to sign in
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.authPage}>

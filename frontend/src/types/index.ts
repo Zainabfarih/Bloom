@@ -34,6 +34,19 @@ export interface RegisterRequest {
   password: string;
 }
 
+/**
+ * Réponse de POST /auth/register.
+ * Aucun token : l'utilisateur doit valider son email avant de pouvoir se connecter.
+ */
+export interface RegisterResponse {
+  email: string;
+  message: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
 export interface PasswordResetRequest {
   email: string;
 }

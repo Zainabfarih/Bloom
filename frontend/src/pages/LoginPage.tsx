@@ -24,25 +24,48 @@ export const LoginPage = () => {
   const setUser   = useAuthStore(s => s.setUser);
   const [serverError, setServerError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  // When login is rejected because the email isn't verified, we surface a
+  // "resend verification" action instead of a plain error.
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
     setServerError('');
+    setNeedsVerification(false);
+    setResendState('idle');
     try {
       const res = await authApi.login(data);
       queryClient.clear();
       setTokens(res.accessToken, res.refreshToken);
       setUser(res.user);
-      setUser(res.user);
       navigate(res.user.role === 'ADMIN' ? '/admin' : '/dashboard', { replace: true });
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      setServerError(e?.response?.data?.message ?? 'Invalid email or password');
+      const e = err as { response?: { status?: number; data?: { error?: string; message?: string } } };
+      // 403 "Email Not Verified" → offer to resend the verification email.
+      if (e?.response?.status === 403 && e?.response?.data?.error === 'Email Not Verified') {
+        setNeedsVerification(true);
+        setServerError(e?.response?.data?.message ?? 'Please verify your email before signing in.');
+      } else {
+        setServerError(e?.response?.data?.message ?? 'Invalid email or password');
+      }
+    }
+  };
+
+  const handleResend = async () => {
+    const email = getValues('email');
+    if (!email) return;
+    setResendState('sending');
+    try {
+      await authApi.resendVerification(email);
+    } finally {
+      setResendState('sent');
     }
   };
 
@@ -116,6 +139,25 @@ export const LoginPage = () => {
             <p className={styles.serverError} role="alert">
               <AlertCircle size={14} />{serverError}
             </p>
+          )}
+
+          {needsVerification && (
+            resendState === 'sent' ? (
+              <p className={styles.successMsg} role="status">
+                <AlertCircle size={14} />Verification email sent. Check your inbox, then sign in.
+              </p>
+            ) : (
+              <button
+                type="button"
+                className="btn btn--ghost btn--full"
+                onClick={handleResend}
+                disabled={resendState === 'sending'}
+              >
+                {resendState === 'sending'
+                  ? <Spinner size={16} />
+                  : 'Resend verification email'}
+              </button>
+            )
           )}
 
           <button

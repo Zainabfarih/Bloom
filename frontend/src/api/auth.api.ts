@@ -2,10 +2,12 @@ import client from './client';
 import type {
   LoginRequest,
   RegisterRequest,
+  RegisterResponse,
   AuthResponse,
   PasswordResetRequest,
   PasswordUpdateRequest,
   RefreshTokenRequest,
+  ResendVerificationRequest,
   TokenValidationResponse,
   UserDTO,
   AdminStatsResponse,
@@ -17,9 +19,31 @@ export const authApi = {
     return response.data;
   },
 
-  register: async (data: RegisterRequest): Promise<AuthResponse> => {
+  /**
+   * Register — creates the account in an unverified state and triggers a
+   * verification email. Returns NO tokens: the user must verify their email
+   * before they can log in.
+   * Backend: POST /api/auth/register
+   */
+  register: async (data: RegisterRequest): Promise<RegisterResponse> => {
     const response = await client.post('/auth/register', data);
     return response.data;
+  },
+
+  /**
+   * Verify an email address from the link sent by mail.
+   * Backend: GET /api/auth/verify-email?token=...
+   */
+  verifyEmail: async (token: string): Promise<void> => {
+    await client.get('/auth/verify-email', { params: { token } });
+  },
+
+  /**
+   * Resend the verification email.
+   * Backend: POST /api/auth/verify-email/resend
+   */
+  resendVerification: async (email: string): Promise<void> => {
+    await client.post('/auth/verify-email/resend', { email } as ResendVerificationRequest);
   },
 
   refreshToken: async (req: RefreshTokenRequest): Promise<AuthResponse> => {
