@@ -54,7 +54,7 @@ export const ForgotPasswordPage = () => {
             <p className={styles.subtitle}>
               We sent a password reset link to <strong style={{ color: 'var(--text)' }}>
                 {getValues('email')}
-              </strong>. It expires in 30 minutes.
+              </strong>. It expires in 1 hour.
             </p>
             <div style={{ marginTop: 8 }}>
               <Link to="/login" className="btn btn--ghost btn--full">
