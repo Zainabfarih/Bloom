@@ -55,13 +55,38 @@ public class EmailVerificationService {
 
     /**
      * Valide un token et marque le user comme vérifié.
-     * @throws InvalidTokenException si le token est inconnu, expiré ou déjà utilisé.
+     *
+     * <p><strong>Idempotent.</strong> Le lien de vérification est déclenché
+     * automatiquement au chargement de la page front, et peut être appelé
+     * plusieurs fois pour un même token : préchargement par les scanners
+     * anti-spam / "safe links" (Gmail, Outlook…), rechargement de page, retour
+     * navigateur, double-rendu React. Si le token a déjà été consommé mais que
+     * le compte est bien vérifié, on considère l'opération réussie au lieu de
+     * renvoyer une erreur — sinon la vérification échouerait à chaque réouverture
+     * du lien.</p>
+     *
+     * @throws InvalidTokenException si le token est inconnu, expiré, ou déjà
+     *         utilisé alors que le compte n'est pas vérifié.
      */
     @Transactional
     public void verifyEmail(String tokenValue) {
         EmailVerificationToken token = tokenRepository.findByToken(tokenValue)
-                .filter(t -> !t.isUsed() && t.getExpiryDate().isAfter(Instant.now()))
                 .orElseThrow(() -> new InvalidTokenException("Lien de vérification invalide ou expiré."));
+
+        // Token déjà consommé : succès idempotent si le compte est vérifié,
+        // erreur sinon (token réellement obsolète).
+        if (token.isUsed()) {
+            if (token.getUser().isEmailVerified()) {
+                log.debug("verifyEmail : token déjà consommé, compte {} déjà vérifié — no-op",
+                        token.getUser().getEmail());
+                return;
+            }
+            throw new InvalidTokenException("Lien de vérification invalide ou expiré.");
+        }
+
+        if (token.getExpiryDate().isBefore(Instant.now())) {
+            throw new InvalidTokenException("Lien de vérification invalide ou expiré.");
+        }
 
         User user = token.getUser();
         user.setEmailVerified(true);
