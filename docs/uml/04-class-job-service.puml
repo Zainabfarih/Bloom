@@ -1,0 +1,31 @@
+@startuml class-job-service
+
+class SavedJob {
+  -Long id
+  -UUID uuid
+  -Long userId
+  -UUID cvUuid
+  -String jobExternalId
+  -String jobTitle
+  -String jobCompany
+  -String jobLocation
+  -String jobApplyUrl
+  -Integer compatibilityScore
+  -Instant savedAt
+}
+
+class SavedJobSkill {
+  -String skillName
+  -SkillType skillType
+}
+
+enum SkillType {
+  REQUIRED
+  MATCHED
+  MISSING
+}
+
+SavedJob "1" *-- "0..*" SavedJobSkill
+SavedJobSkill "1" --> "1" SkillType
+
+@enduml

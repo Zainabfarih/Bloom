@@ -1,0 +1,104 @@
+@startuml use-case-diagram
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Étudiant" as Etudiant
+actor "Administrateur" as Admin
+
+rectangle BLOOM {
+
+  usecase "S'inscrire" as Register
+  usecase "S'authentifier" as Auth
+  usecase "Réinitialiser son mot de passe" as Reset
+
+  package "Gestion du CV" {
+    usecase "Uploader son CV (PDF)" as UC_Upload
+    usecase "Consulter ses CV" as UC_ListCv
+    usecase "Consulter l'analyse ATS et recommandations" as UC_Analyze
+    usecase "Consulter les compétences extraites" as UC_Skills
+    usecase "Supprimer un CV" as UC_DeleteCv
+  }
+
+  package "Offres d'emploi & Stages" {
+    usecase "Rechercher des offres" as UC_Search
+    usecase "Consulter le détail d'une offre" as UC_JobDetail
+    usecase "Sauvegarder une offre" as UC_SaveJob
+    usecase "Voir son score de correspondance" as UC_Score
+    usecase "Voir les compétences manquantes" as UC_Missing
+    usecase "Consulter ses offres sauvegardées" as UC_ListSaved
+    usecase "Retirer une offre sauvegardée" as UC_DeleteSaved
+  }
+
+  package "Roadmap personnalisée" {
+    usecase "Générer une roadmap pour une offre cible" as UC_GenRoadmap
+    usecase "Consulter ses roadmaps" as UC_ViewRoadmap
+    usecase "Suivre sa progression" as UC_Progress
+    usecase "Mettre à jour une étape" as UC_UpdateStep
+    usecase "Accéder aux ressources d'apprentissage" as UC_Resources
+  }
+
+  package "Profil étudiant" {
+    usecase "Consulter son profil" as UC_ViewProfile
+    usecase "Modifier son profil" as UC_EditProfile
+    usecase "Supprimer son compte" as UC_DeleteAccount
+  }
+
+  package "Administration" {
+    usecase "Consulter les statistiques" as UC_Stats
+    usecase "Lister les utilisateurs" as UC_ListUsers
+    usecase "Restaurer un utilisateur" as UC_RecoverUser
+    usecase "Supprimer un utilisateur" as UC_DeleteUser
+    usecase "Purger le cache des offres" as UC_EvictCache
+  }
+}
+
+Etudiant --> Register
+Etudiant --> Reset
+Etudiant --> UC_Upload
+Etudiant --> UC_ListCv
+Etudiant --> UC_Search
+Etudiant --> UC_SaveJob
+Etudiant --> UC_ListSaved
+Etudiant --> UC_GenRoadmap
+Etudiant --> UC_ViewRoadmap
+Etudiant --> UC_ViewProfile
+
+Admin --> UC_Stats
+Admin --> UC_ListUsers
+Admin --> UC_EvictCache
+
+UC_Analyze ..> UC_ListCv : extend
+UC_Skills ..> UC_ListCv : extend
+UC_DeleteCv ..> UC_ListCv : extend
+
+UC_JobDetail ..> UC_Search : extend
+UC_Score ..> UC_SaveJob : extend
+UC_Missing ..> UC_SaveJob : extend
+UC_DeleteSaved ..> UC_ListSaved : extend
+
+UC_Progress ..> UC_ViewRoadmap : extend
+UC_UpdateStep ..> UC_Progress : extend
+UC_Resources ..> UC_ViewRoadmap : extend
+
+UC_EditProfile ..> UC_ViewProfile : extend
+UC_DeleteAccount ..> UC_ViewProfile : extend
+
+UC_RecoverUser ..> UC_ListUsers : extend
+UC_DeleteUser ..> UC_ListUsers : extend
+
+UC_SaveJob ..> UC_Missing : include
+UC_GenRoadmap ..> UC_SaveJob : include
+
+UC_Upload ..> Auth : include
+UC_ListCv ..> Auth : include
+UC_Search ..> Auth : include
+UC_SaveJob ..> Auth : include
+UC_ListSaved ..> Auth : include
+UC_GenRoadmap ..> Auth : include
+UC_ViewRoadmap ..> Auth : include
+UC_ViewProfile ..> Auth : include
+UC_Stats ..> Auth : include
+UC_ListUsers ..> Auth : include
+UC_EvictCache ..> Auth : include
+
+@enduml
