@@ -128,7 +128,7 @@ Local (via Docker Compose):
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:3000 |
+| Frontend | http://localhost:5173 |
 | API Gateway | http://localhost:8080 |
 | Eureka (discovery) | http://localhost:8761 |
 | Config Server | http://localhost:8888 |
@@ -232,12 +232,6 @@ Each service (cv, job) exposes interactive **Swagger / OpenAPI** docs at `/swagg
 ## Conclusion
 
 Bloom delivers a working microservices platform that connects what a student knows to what the job market wants. It covers the full path: requirements, design, secured REST APIs, a real database with migrations, tested services, automated CI/CD, and a monitored production deployment on the cloud. The architecture leaves room to grow — new services can be added without touching the existing ones.
-
----
-
-## Demo
-
-> _Demo video link here._
 
 ---
 
