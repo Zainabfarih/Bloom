@@ -10,6 +10,7 @@ class User {
   -boolean locked
   -int failedLoginAttempts
   -boolean deleted
+  -boolean emailVerified
   -Role role
   -LocalDateTime createdAt
 }
@@ -28,6 +29,13 @@ class PasswordResetToken {
   -boolean used
 }
 
+class EmailVerificationToken {
+  -Long id
+  -String token
+  -Instant expiryDate
+  -boolean used
+}
+
 enum Role {
   STUDENT
   ADMIN
@@ -36,5 +44,6 @@ enum Role {
 User "1" --> "1" Role
 User "1" *-- "0..*" RefreshToken
 User "1" *-- "0..*" PasswordResetToken
+User "1" *-- "0..*" EmailVerificationToken
 
 @enduml

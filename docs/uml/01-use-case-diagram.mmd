@@ -3,9 +3,11 @@ flowchart LR
   subgraph CV["Gestion du CV"]
     direction TB
     UC_Upload(["Uploader son CV (PDF)"])
+    UC_ManualCv@{ label: "Créer un CV manuellement" }
     UC_ListCv(["Consulter ses CV"])
     UC_Analyze@{ label: "Consulter l'analyse ATS et recommandations" }
     UC_Skills@{ label: "Consulter les compétences extraites" }
+    UC_DownloadCv@{ label: "Télécharger son CV" }
     UC_DeleteCv(["Supprimer un CV"])
   end
 
@@ -47,9 +49,15 @@ flowchart LR
 
   subgraph SYS["BLOOM"]
     direction TB
-    Auth@{ label: "S'authentifier" }
+    UC_Home@{ label: "Découvrir la plateforme (accueil / à propos)" }
     Register(["S'inscrire"])
-    Reset@{ label: "Réinitialiser son mot de passe" }
+    Auth@{ label: "S'authentifier" }
+    UC_Verify@{ label: "Vérifier son adresse email" }
+    UC_Resend@{ label: "Renvoyer l'email de vérification" }
+    UC_ForgotPwd@{ label: "Demander la réinitialisation du mot de passe" }
+    UC_ResetPwd@{ label: "Définir un nouveau mot de passe (via lien)" }
+    UC_Logout@{ label: "Se déconnecter" }
+    UC_Dashboard(["Consulter son tableau de bord"])
     CV
     JOBS
     ROADMAP
@@ -57,11 +65,14 @@ flowchart LR
     ADMIN
   end
 
-  Etudiant(["Étudiant"]) --- Register & Reset & UC_Upload & UC_ListCv & UC_Search & UC_SaveJob & UC_ListSaved & UC_GenRoadmap & UC_ViewRoadmap & UC_ViewProfile
+  Etudiant(["Étudiant"]) --- UC_Home & Register & Auth & UC_Verify & UC_ForgotPwd & UC_ResetPwd & UC_Logout & UC_Dashboard & UC_Upload & UC_ManualCv & UC_ListCv & UC_Search & UC_SaveJob & UC_ListSaved & UC_GenRoadmap & UC_ViewRoadmap & UC_ViewProfile
   Admin(["Administrateur"]) --- UC_Stats & UC_ListUsers & UC_EvictCache
+
+  UC_Resend -. extend .-> UC_Verify
 
   UC_Analyze -. extend .-> UC_ListCv
   UC_Skills -. extend .-> UC_ListCv
+  UC_DownloadCv -. extend .-> UC_ListCv
   UC_DeleteCv -. extend .-> UC_ListCv
 
   UC_JobDetail -. extend .-> UC_Search
@@ -79,23 +90,20 @@ flowchart LR
   UC_RecoverUser -. extend .-> UC_ListUsers
   UC_DeleteUser -. extend .-> UC_ListUsers
 
-  UC_SaveJob -. include .-> UC_Missing
+  UC_ResetPwd -. include .-> UC_ForgotPwd
   UC_GenRoadmap -. include .-> UC_SaveJob
 
-  UC_Upload -. include .-> Auth
-  UC_ListCv -. include .-> Auth
-  UC_Search -. include .-> Auth
-  UC_SaveJob -. include .-> Auth
-  UC_ListSaved -. include .-> Auth
-  UC_GenRoadmap -. include .-> Auth
-  UC_ViewRoadmap -. include .-> Auth
-  UC_ViewProfile -. include .-> Auth
-  UC_Stats -. include .-> Auth
-  UC_ListUsers -. include .-> Auth
-  UC_EvictCache -. include .-> Auth
-
+  UC_Home@{ shape: stadium }
+  Auth@{ shape: stadium }
+  UC_Verify@{ shape: stadium }
+  UC_Resend@{ shape: stadium }
+  UC_ForgotPwd@{ shape: stadium }
+  UC_ResetPwd@{ shape: stadium }
+  UC_Logout@{ shape: stadium }
+  UC_ManualCv@{ shape: stadium }
   UC_Analyze@{ shape: stadium }
   UC_Skills@{ shape: stadium }
+  UC_DownloadCv@{ shape: stadium }
   UC_Score@{ shape: stadium }
   UC_Missing@{ shape: stadium }
   UC_UpdateStep@{ shape: stadium }
@@ -104,13 +112,21 @@ flowchart LR
   UC_DeleteAccount@{ shape: stadium }
   UC_RecoverUser@{ shape: stadium }
   UC_DeleteUser@{ shape: stadium }
-  Reset@{ shape: stadium }
-  Auth@{ shape: stadium }
 
+  UC_Home:::ucStyle
+  Register:::ucStyle
+  UC_Verify:::ucStyle
+  UC_Resend:::ucStyle
+  UC_ForgotPwd:::ucStyle
+  UC_ResetPwd:::ucStyle
+  UC_Logout:::ucStyle
+  UC_Dashboard:::ucStyle
   UC_Upload:::ucStyle
+  UC_ManualCv:::ucStyle
   UC_ListCv:::ucStyle
   UC_Analyze:::ucStyle
   UC_Skills:::ucStyle
+  UC_DownloadCv:::ucStyle
   UC_DeleteCv:::ucStyle
   UC_Search:::ucStyle
   UC_JobDetail:::ucStyle
@@ -132,8 +148,6 @@ flowchart LR
   UC_RecoverUser:::ucStyle
   UC_DeleteUser:::ucStyle
   UC_EvictCache:::ucStyle
-  Register:::ucStyle
-  Reset:::ucStyle
 
   classDef ucStyle fill:#fdd835,stroke:#fbc02d,stroke-width:2px,color:#000
   style Auth fill:#ffb300,stroke:#f57f17,stroke-width:3px,color:#000,font-weight:bold
