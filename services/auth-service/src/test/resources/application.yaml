@@ -1,11 +1,25 @@
 spring:
+  application:
+    name: auth-service
+  main:
+    allow-bean-definition-overriding: true
+
+  # ─── Pas de config-server ni d'Eureka en test ────────────────────────────
   cloud:
     config:
       enabled: false
+      fail-fast: false
+      import-check:
+        enabled: false
+    service-registry:
+      auto-registration:
+        enabled: false
     discovery:
       enabled: false
   config:
     import: ""
+
+  # ─── Datasource H2 (override le Postgres du main yaml) ───────────────────
   datasource:
     url: jdbc:h2:mem:authtest;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
     driver-class-name: org.h2.Driver
@@ -14,14 +28,28 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
+
+  # ─── Flyway désactivé : les migrations utilisent du SQL Postgres-only ────
+  flyway:
+    enabled: false
+
+  # ─── Mail factice ────────────────────────────────────────────────────────
   mail:
     host: localhost
-    port: 3025
+    port: 25
     username: test
     password: test
+    test-connection: false
+
+  # ─── Spring Boot Admin client désactivé ──────────────────────────────────
+  boot:
+    admin:
+      client:
+        enabled: false
 
 eureka:
   client:
@@ -29,6 +57,12 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
 
+management:
+  health:
+    mail:
+      enabled: false
+
+# ─── Secrets et propriétés métier en valeurs de test ───────────────────────
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
   access-token-expiration: 900000
@@ -36,9 +70,9 @@ jwt:
 
 app:
   password-reset-token-expiration: 3600000
-  frontend-url: http://localhost:3000
+  frontend-url: http://localhost:5173
   max-failed-login-attempts: 5
 
 internal:
   security:
-    gateway-secret: test-secret
+    gateway-secret: test-gateway-secret
