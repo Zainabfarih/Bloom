@@ -91,8 +91,6 @@ public class Cv {
         updatedAt = Instant.now();
     }
 
-    // ─── Helpers de gestion des skills ───────────────────────────────────────
-
     public void replaceSkills(List<String> names) {
         skills.clear();
         if (names == null) return;

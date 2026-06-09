@@ -19,6 +19,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Endpoints REST des CV : upload PDF, saisie manuelle, lecture,
+ * téléchargement du fichier, extraction de skills et analyse ATS.
+ */
 @RestController
 @RequestMapping("/api/cv")
 @RequiredArgsConstructor
@@ -26,8 +30,6 @@ import java.util.UUID;
 public class CvController {
 
     private final CvService cvService;
-
-    // ─── Upload PDF ──────────────────────────────────────────────────────────
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload d'un CV PDF — texte extrait + skills détectés par IA")
@@ -42,8 +44,6 @@ public class CvController {
                 .body(cvService.uploadCv(userId, file, title));
     }
 
-    // ─── Saisie manuelle ───────────────────────────────────────────────────────
-
     @PostMapping("/manual")
     @Operation(summary = "Création d'un CV par saisie manuelle des sections")
     public ResponseEntity<CvResponse> createManual(
@@ -55,8 +55,6 @@ public class CvController {
                 .status(HttpStatus.CREATED)
                 .body(cvService.createManualCv(userId, request));
     }
-
-    // ─── Lectures ──────────────────────────────────────────────────────────────
 
     @GetMapping("/me")
     @Operation(summary = "Récupère le CV actif de l'étudiant connecté")
@@ -71,8 +69,6 @@ public class CvController {
         Long userId = (Long) auth.getPrincipal();
         return ResponseEntity.ok(cvService.getMyCvs(userId));
     }
-
-    // ─── Téléchargement / consultation du fichier PDF ──────────────────────────
 
     @GetMapping("/{cvUuid}/file")
     @Operation(summary = "Télécharge / consulte le fichier PDF du CV")
@@ -98,8 +94,6 @@ public class CvController {
                 .body(cv.getFileData());
     }
 
-    // ─── Contrat consommé par job-service (Feign) ──────────────────────────────
-
     @GetMapping("/users/{userId}/skills")
     @Operation(summary = "Skills du CV actif d'un étudiant — consommé par job-service")
     public ResponseEntity<SkillsDTO> getUserSkills(@PathVariable Long userId) {
@@ -112,8 +106,6 @@ public class CvController {
         return ResponseEntity.ok(cvService.getCvSkills(cvUuid));
     }
 
-    // ─── Analyse ATS (à la volée, non persistée) ────────────────────────────────
-
     @GetMapping("/{cvUuid}/analysis")
     @Operation(summary = "Analyse ATS du CV — score, grammaire, structure, contenu (calcul à la volée)")
     public ResponseEntity<CvAnalysisResponse> analyze(
@@ -123,8 +115,6 @@ public class CvController {
         Long userId = (Long) auth.getPrincipal();
         return ResponseEntity.ok(cvService.analyzeCv(userId, cvUuid));
     }
-
-    // ─── Suppression ─────────────────────────────────────────────────────────────
 
     @DeleteMapping("/{cvUuid}")
     @Operation(summary = "Supprime un CV de l'étudiant connecté")
