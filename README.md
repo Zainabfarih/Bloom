@@ -59,7 +59,7 @@ The project is built as a set of Spring Boot microservices, with a React fronten
 ## Features
 
 - **Tech role catalog** — browse roles (Software Engineer, Data Analyst, DevOps, etc.), each with required skills and a learning order.
-- **CV upload & skill extraction** — upload a PDF/DOCX, the AI extracts skills, experience and education.
+- **CV upload & skill extraction** — upload a PDF, the AI extracts skills, experience and education.
 - **Job matching** — match extracted skills against real offers, ranked by compatibility, with a clear skill-gap view.
 - **Skill gap analysis** — see exactly which skills are missing for a role or an offer, and add them to the learning plan.
 - **Personal learning plan** — a single place to manage skills to learn, with roadmaps and progress tracking.
@@ -95,7 +95,7 @@ Bloom uses a microservices architecture. The frontend talks only to the **API Ga
 | Service | Port | Database | Description |
 |---|---|---|---|
 | **auth-service** | 8081 | bloom_auth | Registration, login, JWT, password & user management |
-| **cv-service** | 8082 | bloom_cv | CV upload (PDF/DOCX), AI skill extraction, CV analysis |
+| **cv-service** | 8082 | bloom_cv | CV upload (PDF), AI skill extraction, CV analysis |
 | **job-service** | 8083 | bloom_jobs | Job fetching, matching, skill-gap detection, Redis cache |
 | **roadmap-service** | 8085 | bloom_roadmap | AI-generated learning roadmaps |
 
@@ -158,7 +158,7 @@ Local (via Docker Compose):
    docker compose up --build
    ```
 
-3. Open the frontend at http://localhost:3000.
+3. Open the frontend at http://localhost:5173. 
 
 Services read their configuration from the Config Server (`config-repo/`) and register with Eureka. Databases are external managed PostgreSQL instances configured through `.env`.
 
