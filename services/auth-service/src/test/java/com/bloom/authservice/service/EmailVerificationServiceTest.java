@@ -133,6 +133,23 @@ class EmailVerificationServiceTest {
     }
 
     @Test
+    @DisplayName("verifyEmail : token déjà utilisé mais compte déjà vérifié → succès idempotent")
+    void verifyEmail_idempotent_when_token_used_but_account_verified() {
+        user.setEmailVerified(true);
+        EmailVerificationToken token = EmailVerificationToken.builder()
+                .id(1L).token("used").used(true)
+                .expiryDate(Instant.now().plusSeconds(60)).user(user).build();
+
+        when(tokenRepository.findByToken("used")).thenReturn(Optional.of(token));
+
+        service.verifyEmail("used"); // ne doit pas lever d'exception
+
+        assertThat(user.isEmailVerified()).isTrue();
+        verify(userRepository, never()).save(any());
+        verify(tokenRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("verifyEmail : token expiré → InvalidTokenException")
     void verifyEmail_throws_when_token_expired() {
         EmailVerificationToken token = EmailVerificationToken.builder()
