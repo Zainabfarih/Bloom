@@ -32,6 +32,11 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
           cache: maven
+      - name: Purge cache Maven empoisonné (webmvc-test + marqueurs d'échec)
+        run: |
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-webmvc-test
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-starter-webmvc-test
+          find ~/.m2/repository -name '*.lastUpdated' -delete 2>/dev/null || true
       - name: Compile
         run: $MVN clean compile
         working-directory: services/auth-service
@@ -47,6 +52,11 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
           cache: maven
+      - name: Purge cache Maven empoisonné (webmvc-test + marqueurs d'échec)
+        run: |
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-webmvc-test
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-starter-webmvc-test
+          find ~/.m2/repository -name '*.lastUpdated' -delete 2>/dev/null || true
       - name: Tests
         run: $MVN test
         working-directory: services/auth-service
@@ -75,6 +85,11 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
           cache: maven
+      - name: Purge cache Maven empoisonné (webmvc-test + marqueurs d'échec)
+        run: |
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-webmvc-test
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-starter-webmvc-test
+          find ~/.m2/repository -name '*.lastUpdated' -delete 2>/dev/null || true
       - name: Vérification version SNAPSHOT
         run: |
           VERSION=$($MVN help:evaluate -Dexpression=project.version -q -DforceStdout)
