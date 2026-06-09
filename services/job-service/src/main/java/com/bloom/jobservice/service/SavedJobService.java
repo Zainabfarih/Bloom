@@ -19,6 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Gestion des offres sauvegardées : matching CV vs offre, score de
+ * compatibilité, écart de compétences et persistance des favoris.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

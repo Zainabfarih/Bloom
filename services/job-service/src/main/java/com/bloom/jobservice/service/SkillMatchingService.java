@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Compare les compétences requises d'une offre aux compétences du CV :
+ * score de compatibilité, compétences présentes et manquantes (insensible à la casse).
+ */
 @Service
 public class SkillMatchingService {
 

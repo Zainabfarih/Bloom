@@ -23,6 +23,10 @@ import java.util.HexFormat;
 import java.util.List;
 
 
+/**
+ * Authentifie les requêtes : via la Gateway (headers X-User-* + secret partagé)
+ * ou en appel direct service-à-service (Bearer JWT). Stateless, sans session.
+ */
 @Component
 @Slf4j
 public class GatewayAuthFilter extends OncePerRequestFilter {
@@ -47,7 +51,7 @@ public class GatewayAuthFilter extends OncePerRequestFilter {
         String roleHeader          = request.getHeader("X-User-Role");
         String authorizationHeader = request.getHeader("Authorization");
 
-        // ── Scénario 1 : requête arrivée via la Gateway ──────────────────────
+        // Scénario 1 : requête arrivée via la Gateway
         if (userIdHeader != null) {
 
             if (gatewaySecretHeader == null || !gatewaySecretHeader.trim().equals(expectedSecret)) {
@@ -67,7 +71,7 @@ public class GatewayAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
-        // ── Scénario 2 : appel direct service-à-service avec Bearer token ────
+        // Scénario 2 : appel direct service-à-service avec Bearer token
         } else if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             try {
                 Claims claims = parseClaims(authorizationHeader.substring(7));

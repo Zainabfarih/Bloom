@@ -53,8 +53,7 @@ class JobServiceTest {
                 jobsApiClient, skillExtractor);
     }
 
-    // ─── searchJobs ──────────────────────────────────────────────────────────
-
+    // searchJobs
     @Test
     void searchJobs_cache_hit_returns_response_without_skills() {
         List<JobResult> cached = List.of(buildJobResult("id-1", "Java Dev", "ALTEN"));
@@ -117,8 +116,7 @@ class JobServiceTest {
         assertThat(result.getJobs()).isEmpty();
     }
 
-    // ─── getJobDetail ─────────────────────────────────────────────────────────
-
+    // getJobDetail
     @Test
     void getJobDetail_skills_cache_hit_returns_cached_skills() {
         when(genericOps.get("jobs:jobid:id-1")).thenReturn("jobs:search:abc123");
@@ -171,8 +169,7 @@ class JobServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // ─── evictCache ───────────────────────────────────────────────────────────
-
+    // evictCache
     @Test
     void evictCache_deletes_search_index_and_skill_caches() {
         String searchKey = buildExpectedSearchKey("java", "Morocco");
@@ -191,8 +188,7 @@ class JobServiceTest {
         verify(jobsRedisTemplate).delete(searchKey);
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
-
+    // Helpers
     private JobResult buildJobResult(String id, String title, String company) {
         JobResult job = new JobResult();
         job.setJobId(id);

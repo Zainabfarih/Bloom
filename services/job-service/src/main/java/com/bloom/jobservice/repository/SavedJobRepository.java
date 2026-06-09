@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/** Accès aux offres sauvegardées (Spring Data JPA) avec chargement des skills. */
 public interface SavedJobRepository extends JpaRepository<SavedJob, Long> {
 
     @Query("SELECT DISTINCT j FROM SavedJob j LEFT JOIN FETCH j.skills " +
