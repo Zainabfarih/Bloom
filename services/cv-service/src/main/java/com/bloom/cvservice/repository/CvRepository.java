@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/** Accès aux CV en base (Spring Data JPA) avec chargement des skills. */
 public interface CvRepository extends JpaRepository<Cv, Long> {
 
     @Query("SELECT DISTINCT c FROM Cv c LEFT JOIN FETCH c.skills " +

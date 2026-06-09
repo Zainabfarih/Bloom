@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Upload, Trash2, ChevronDown, ChevronUp, FileText,
-  CheckCircle2, AlertTriangle, Zap,
+  CheckCircle2, AlertTriangle, Zap, FilePlus, Download,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { cvApi } from '../api/cv.api';
 import { Spinner } from '../components/ui/Spinner';
 import { useToast } from '../components/ui/Toast';
+import { ManualCvForm } from '../components/cv/ManualCvForm';
+import { saveBlob } from '../lib/download';
 import type { CvResponse, CvAnalysisResponse } from '../types';
 import styles from './CvPage.module.css';
 
@@ -17,6 +19,7 @@ export const CvPage = () => {
   const [expandedUuid, setExpandedUuid] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
   const { data: cvs, isLoading } = useQuery({
     queryKey: ['cvs'],
@@ -75,10 +78,16 @@ export const CvPage = () => {
 
   return (
     <div>
-      <h1 className="section-title">My CVs</h1>
-      <p className="section-subtitle">Upload and analyse your resumes</p>
+      <div className={styles.pageHeader}>
+        <div>
+          <h1 className="section-title">My CVs</h1>
+          <p className="section-subtitle">Upload, create and analyse your resumes</p>
+        </div>
+        <button className="btn btn--primary" onClick={() => setManualOpen(true)}>
+          <FilePlus size={16} /> Create manually
+        </button>
+      </div>
 
-      {/* Upload zone */}
       <div
         className={`${styles.dropzone} ${dragOver ? styles.dropzoneDrag : ''}`}
         onClick={() => fileRef.current?.click()}
@@ -113,13 +122,12 @@ export const CvPage = () => {
         </p>
       )}
 
-      {/* CV list */}
       {isLoading ? (
         <Spinner center />
       ) : !cvs || cvs.length === 0 ? (
         <div className={styles.empty}>
           <FileText size={40} color="var(--text-3)" />
-          <p>No CVs yet. Upload one above.</p>
+          <p>No CVs yet. Upload one above or create it manually.</p>
         </div>
       ) : (
         <div className={styles.cvList}>
@@ -135,11 +143,12 @@ export const CvPage = () => {
           ))}
         </div>
       )}
+
+      {manualOpen && <ManualCvForm onClose={() => setManualOpen(false)} />}
     </div>
   );
 };
 
-// ── CV Card ──────────────────────────────────────────────────────────
 const CvCard = ({
   cv, expanded, onToggle, onDelete, deleting,
 }: {
@@ -149,6 +158,9 @@ const CvCard = ({
   onDelete: () => void;
   deleting: boolean;
 }) => {
+  const toast = useToast();
+  const [downloading, setDownloading] = useState(false);
+
   const { data: analysis, isLoading: loadingAnalysis } = useQuery({
     queryKey: ['cv-analysis', cv.uuid],
     queryFn: () => cvApi.getCvAnalysis(cv.uuid),
@@ -161,8 +173,20 @@ const CvCard = ({
     enabled: expanded,
   });
 
-  // Display name: prefer originalFilename, fall back to title
   const displayName = cv.originalFilename ?? cv.title ?? `CV ${cv.uuid.slice(0, 8)}`;
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const blob = await cvApi.downloadCv(cv.uuid);
+      const filename = cv.originalFilename ?? `${cv.uuid.slice(0, 8)}.pdf`;
+      saveBlob(blob, filename);
+    } catch {
+      toast.error('Could not download this CV');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div className={styles.cvCard}>
@@ -185,6 +209,14 @@ const CvCard = ({
         </div>
 
         <div className={styles.cvCardActions}>
+          <button
+            className="btn btn--ghost btn--sm"
+            onClick={handleDownload}
+            disabled={downloading}
+            aria-label="Download CV"
+          >
+            {downloading ? <Spinner size={14} /> : <Download size={15} />}
+          </button>
           <button className="btn btn--ghost btn--sm" onClick={onToggle}>
             {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
             {expanded ? 'Close' : 'Analyse'}
@@ -217,7 +249,6 @@ const CvCard = ({
   );
 };
 
-// ── CV Analysis ──────────────────────────────────────────────────────
 const CvAnalysis = ({
   analysis,
   skills,
@@ -226,7 +257,6 @@ const CvAnalysis = ({
   skills: string[];
 }) => (
   <div className={styles.analysis}>
-    {/* ATS Score */}
     <div className={styles.scoreRow}>
       <div className={styles.scoreCircle}>
         <svg viewBox="0 0 36 36" className={styles.scoreArc}>
@@ -251,7 +281,6 @@ const CvAnalysis = ({
       </div>
     </div>
 
-    {/* Summary */}
     {analysis.summary && (
       <div className={styles.analysisSection}>
         <h4><Zap size={13} /> Summary</h4>
@@ -259,7 +288,6 @@ const CvAnalysis = ({
       </div>
     )}
 
-    {/* Strengths */}
     {analysis.strengths?.length > 0 && (
       <div className={styles.analysisSection}>
         <h4><CheckCircle2 size={13} /> Strengths</h4>
@@ -271,7 +299,6 @@ const CvAnalysis = ({
       </div>
     )}
 
-    {/* Issues */}
     {analysis.issues?.length > 0 && (
       <div className={styles.analysisSection}>
         <h4><AlertTriangle size={13} /> Issues</h4>
@@ -286,7 +313,6 @@ const CvAnalysis = ({
       </div>
     )}
 
-    {/* Skills */}
     {skills.length > 0 && (
       <div className={styles.analysisSection}>
         <h4>Skills detected ({skills.length})</h4>

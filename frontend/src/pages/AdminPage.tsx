@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Users, UserCheck, UserX, Search, RefreshCw,
-  Trash2, ShieldOff, ChevronDown, UserPlus, TrendingUp,
+  Trash2, ShieldOff, ChevronDown, UserPlus, TrendingUp, Database,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { authApi } from '../api/auth.api';
+import { jobApi } from '../api/job.api';
 import { Spinner } from '../components/ui/Spinner';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
@@ -125,6 +126,8 @@ export const AdminPage = () => {
       {serverStats && serverStats.signupsByDay?.length > 0 && (
         <SignupsTrend data={serverStats} />
       )}
+
+      <CacheManager />
 
       {/* User management */}
       <div className={`card ${styles.tableCard}`}>
@@ -269,7 +272,57 @@ export const AdminPage = () => {
   );
 };
 
-// ── Signups trend (30 days) ───────────────────────────────────────────
+const CacheManager = () => {
+  const toast = useToast();
+  const [query, setQuery] = useState('');
+  const [location, setLocation] = useState('');
+
+  const evictMutation = useMutation({
+    mutationFn: () => jobApi.evictCache(query.trim(), location.trim() || undefined),
+    onSuccess: () => {
+      toast.success('Job cache purged for this query');
+      setQuery('');
+      setLocation('');
+    },
+    onError: () => toast.error('Could not purge the cache'),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim().length === 0) {
+      toast.error('Enter a search query to purge');
+      return;
+    }
+    evictMutation.mutate();
+  };
+
+  return (
+    <div className={`card ${styles.cacheCard}`}>
+      <div className={styles.cacheHeader}>
+        <h3 className={styles.cacheTitle}><Database size={15} /> Job cache</h3>
+        <p className={styles.cacheSub}>Purge cached search results and extracted skills for a query</p>
+      </div>
+      <form className={styles.cacheForm} onSubmit={handleSubmit}>
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Query (e.g. java developer)"
+          aria-label="Cache query"
+        />
+        <input
+          value={location}
+          onChange={e => setLocation(e.target.value)}
+          placeholder="Location (optional)"
+          aria-label="Cache location"
+        />
+        <button type="submit" className="btn btn--danger" disabled={evictMutation.isPending}>
+          {evictMutation.isPending ? <Spinner size={15} /> : <><Trash2 size={14} /> Purge</>}
+        </button>
+      </form>
+    </div>
+  );
+};
+
 const SignupsTrend = ({ data }: { data: AdminStatsResponse }) => {
   const days = data.signupsByDay;
   const max = Math.max(1, ...days.map(d => d.count));
