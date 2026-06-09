@@ -20,20 +20,17 @@ export const VerifyEmailPage = () => {
   const navigate = useNavigate();
   const token = searchParams.get('token') ?? '';
 
-  const [status, setStatus] = useState<Status>('verifying');
+  const [status, setStatus] = useState<Status>(token ? 'verifying' : 'error');
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [email, setEmail] = useState('');
   // Guard against React 18/19 StrictMode double-invocation of effects.
   const ranRef = useRef(false);
 
   useEffect(() => {
-    if (ranRef.current) return;
+    // No token → nothing to verify. The initial state is already 'error',
+    // so we avoid a synchronous setState inside the effect body.
+    if (!token || ranRef.current) return;
     ranRef.current = true;
-
-    if (!token) {
-      setStatus('error');
-      return;
-    }
 
     authApi
       .verifyEmail(token)
