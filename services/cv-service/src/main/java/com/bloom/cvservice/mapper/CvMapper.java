@@ -5,6 +5,7 @@ import com.bloom.cvservice.dto.SkillsDTO;
 import com.bloom.cvservice.entity.Cv;
 import org.springframework.stereotype.Component;
 
+/** Convertit les entités Cv en DTO exposés par l'API. */
 @Component
 public class CvMapper {
 

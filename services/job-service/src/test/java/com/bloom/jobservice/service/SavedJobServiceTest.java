@@ -2,8 +2,10 @@ package com.bloom.jobservice.service;
 
 import com.bloom.jobservice.dto.JobDetailResponse;
 import com.bloom.jobservice.dto.SavedJobResponse;
+import com.bloom.jobservice.dto.SkillGapResponse;
 import com.bloom.jobservice.dto.SkillsDTO;
 import com.bloom.jobservice.entity.SavedJob;
+import com.bloom.jobservice.entity.SkillType;
 import com.bloom.jobservice.exception.JobsApiException;
 import com.bloom.jobservice.exception.ResourceNotFoundException;
 import com.bloom.jobservice.external.CvServiceClient;
@@ -268,6 +270,49 @@ class SavedJobServiceTest {
             assertThatThrownBy(() -> savedJobService.removeSavedJob(USER_ID, JOB_EXT_ID))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining(String.valueOf(USER_ID));
+        }
+    }
+
+
+    @Nested
+    @DisplayName("getSkillGap")
+    class GetSkillGapTests {
+
+        @Test
+        @DisplayName("Propriétaire légitime → renvoie les compétences manquantes")
+        void get_skill_gap_returns_missing_skills_for_owner() {
+            Long targetJobId = 5L;
+            SavedJob job = buildSavedJob(40);
+            job.setUserId(USER_ID);
+            job.addSkills(List.of("Docker", "Kubernetes"), SkillType.MISSING);
+            when(savedJobRepository.findById(targetJobId)).thenReturn(Optional.of(job));
+
+            SkillGapResponse result = savedJobService.getSkillGap(USER_ID, targetJobId);
+
+            assertThat(result.userId()).isEqualTo(USER_ID);
+            assertThat(result.jobId()).isEqualTo(targetJobId);
+            assertThat(result.missingSkills()).containsExactly("Docker", "Kubernetes");
+        }
+
+        @Test
+        @DisplayName("Mauvais propriétaire → ResourceNotFoundException")
+        void get_skill_gap_throws_when_wrong_owner() {
+            Long targetJobId = 5L;
+            SavedJob job = buildSavedJob(40);
+            job.setUserId(999L);
+            when(savedJobRepository.findById(targetJobId)).thenReturn(Optional.of(job));
+
+            assertThatThrownBy(() -> savedJobService.getSkillGap(USER_ID, targetJobId))
+                    .isInstanceOf(ResourceNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("SavedJob inexistant → ResourceNotFoundException")
+        void get_skill_gap_throws_when_not_found() {
+            when(savedJobRepository.findById(5L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> savedJobService.getSkillGap(USER_ID, 5L))
+                    .isInstanceOf(ResourceNotFoundException.class);
         }
     }
 

@@ -147,6 +147,7 @@ class CvControllerTest {
             request.setExperiences(List.of("Stage backend 6 mois chez X"));
             request.setEducations(List.of("Master Génie Logiciel - 2026"));
             request.setSkills(List.of("Python"));
+            request.setPdfBase64("JVBERi0xLjQK");
 
             mockMvc.perform(post("/api/cv/manual")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)
@@ -166,6 +167,7 @@ class CvControllerTest {
             invalid.setExperiences(List.of("Stage backend"));
             invalid.setEducations(List.of("Master GL"));
             invalid.setSkills(List.of("Python"));
+            invalid.setPdfBase64("JVBERi0xLjQK");
 
             mockMvc.perform(post("/api/cv/manual")
                             .header("X-Gateway-Secret", GATEWAY_SECRET)

@@ -1,0 +1,147 @@
+flowchart LR
+
+  subgraph CV["Gestion du CV"]
+    direction TB
+    UC_Upload(["Uploader son CV (PDF)"])
+    UC_ListCv(["Consulter ses CV"])
+    UC_Analyze@{ label: "Consulter l'analyse ATS et recommandations" }
+    UC_Skills@{ label: "Consulter les compétences extraites" }
+    UC_DeleteCv(["Supprimer un CV"])
+  end
+
+  subgraph JOBS["Offres d'emploi & Stages"]
+    direction TB
+    UC_Search(["Rechercher des offres"])
+    UC_JobDetail(["Consulter le détail d'une offre"])
+    UC_SaveJob(["Sauvegarder une offre"])
+    UC_Score@{ label: "Voir son score de correspondance" }
+    UC_Missing@{ label: "Voir les compétences manquantes" }
+    UC_ListSaved(["Consulter ses offres sauvegardées"])
+    UC_DeleteSaved(["Retirer une offre sauvegardée"])
+  end
+
+  subgraph ROADMAP["Roadmap personnalisée"]
+    direction TB
+    UC_GenRoadmap(["Générer une roadmap pour une offre cible"])
+    UC_ViewRoadmap(["Consulter ses roadmaps"])
+    UC_Progress(["Suivre sa progression"])
+    UC_UpdateStep@{ label: "Mettre à jour une étape" }
+    UC_Resources@{ label: "Accéder aux ressources d'apprentissage" }
+  end
+
+  subgraph PROFILE["Profil étudiant"]
+    direction TB
+    UC_ViewProfile(["Consulter son profil"])
+    UC_EditProfile@{ label: "Modifier son profil" }
+    UC_DeleteAccount@{ label: "Supprimer son compte" }
+  end
+
+  subgraph ADMIN["Administration"]
+    direction TB
+    UC_Stats(["Consulter les statistiques"])
+    UC_ListUsers(["Lister les utilisateurs"])
+    UC_RecoverUser@{ label: "Restaurer un utilisateur" }
+    UC_DeleteUser@{ label: "Supprimer un utilisateur" }
+    UC_EvictCache(["Purger le cache des offres"])
+  end
+
+  subgraph SYS["BLOOM"]
+    direction TB
+    Auth@{ label: "S'authentifier" }
+    Register(["S'inscrire"])
+    Reset@{ label: "Réinitialiser son mot de passe" }
+    CV
+    JOBS
+    ROADMAP
+    PROFILE
+    ADMIN
+  end
+
+  Etudiant(["Étudiant"]) --- Register & Reset & UC_Upload & UC_ListCv & UC_Search & UC_SaveJob & UC_ListSaved & UC_GenRoadmap & UC_ViewRoadmap & UC_ViewProfile
+  Admin(["Administrateur"]) --- UC_Stats & UC_ListUsers & UC_EvictCache
+
+  UC_Analyze -. extend .-> UC_ListCv
+  UC_Skills -. extend .-> UC_ListCv
+  UC_DeleteCv -. extend .-> UC_ListCv
+
+  UC_JobDetail -. extend .-> UC_Search
+  UC_Score -. extend .-> UC_SaveJob
+  UC_Missing -. extend .-> UC_SaveJob
+  UC_DeleteSaved -. extend .-> UC_ListSaved
+
+  UC_Progress -. extend .-> UC_ViewRoadmap
+  UC_UpdateStep -. extend .-> UC_Progress
+  UC_Resources -. extend .-> UC_ViewRoadmap
+
+  UC_EditProfile -. extend .-> UC_ViewProfile
+  UC_DeleteAccount -. extend .-> UC_ViewProfile
+
+  UC_RecoverUser -. extend .-> UC_ListUsers
+  UC_DeleteUser -. extend .-> UC_ListUsers
+
+  UC_SaveJob -. include .-> UC_Missing
+  UC_GenRoadmap -. include .-> UC_SaveJob
+
+  UC_Upload -. include .-> Auth
+  UC_ListCv -. include .-> Auth
+  UC_Search -. include .-> Auth
+  UC_SaveJob -. include .-> Auth
+  UC_ListSaved -. include .-> Auth
+  UC_GenRoadmap -. include .-> Auth
+  UC_ViewRoadmap -. include .-> Auth
+  UC_ViewProfile -. include .-> Auth
+  UC_Stats -. include .-> Auth
+  UC_ListUsers -. include .-> Auth
+  UC_EvictCache -. include .-> Auth
+
+  UC_Analyze@{ shape: stadium }
+  UC_Skills@{ shape: stadium }
+  UC_Score@{ shape: stadium }
+  UC_Missing@{ shape: stadium }
+  UC_UpdateStep@{ shape: stadium }
+  UC_Resources@{ shape: stadium }
+  UC_EditProfile@{ shape: stadium }
+  UC_DeleteAccount@{ shape: stadium }
+  UC_RecoverUser@{ shape: stadium }
+  UC_DeleteUser@{ shape: stadium }
+  Reset@{ shape: stadium }
+  Auth@{ shape: stadium }
+
+  UC_Upload:::ucStyle
+  UC_ListCv:::ucStyle
+  UC_Analyze:::ucStyle
+  UC_Skills:::ucStyle
+  UC_DeleteCv:::ucStyle
+  UC_Search:::ucStyle
+  UC_JobDetail:::ucStyle
+  UC_SaveJob:::ucStyle
+  UC_Score:::ucStyle
+  UC_Missing:::ucStyle
+  UC_ListSaved:::ucStyle
+  UC_DeleteSaved:::ucStyle
+  UC_GenRoadmap:::ucStyle
+  UC_ViewRoadmap:::ucStyle
+  UC_Progress:::ucStyle
+  UC_UpdateStep:::ucStyle
+  UC_Resources:::ucStyle
+  UC_ViewProfile:::ucStyle
+  UC_EditProfile:::ucStyle
+  UC_DeleteAccount:::ucStyle
+  UC_Stats:::ucStyle
+  UC_ListUsers:::ucStyle
+  UC_RecoverUser:::ucStyle
+  UC_DeleteUser:::ucStyle
+  UC_EvictCache:::ucStyle
+  Register:::ucStyle
+  Reset:::ucStyle
+
+  classDef ucStyle fill:#fdd835,stroke:#fbc02d,stroke-width:2px,color:#000
+  style Auth fill:#ffb300,stroke:#f57f17,stroke-width:3px,color:#000,font-weight:bold
+  style CV fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style JOBS fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style ROADMAP fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style PROFILE fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style ADMIN fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style Etudiant fill:transparent,stroke:none,color:#2e7d32,font-weight:bold
+  style Admin fill:transparent,stroke:none,color:#2e7d32,font-weight:bold
+  style SYS fill:transparent,stroke:#888,stroke-width:2px,color:#333

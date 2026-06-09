@@ -5,17 +5,6 @@ import type {
   SavedJobResponse,
 } from '@/types';
 
-/**
- * Job service client.
- * Backend base path: /api/job (see JobController).
- *
- *   GET    /job/search?query&location   (SerpAPI, cached 24h)
- *   GET    /job/{jobId}                 (detail — requires a prior search)
- *   POST   /job/saved/{jobId}?cvUuid    (save + server-side skill match)
- *   GET    /job/saved                   (ordered by compatibility DESC)
- *   GET    /job/saved/{uuid}
- *   DELETE /job/saved/{jobExternalId}   (NB: deletes by EXTERNAL id, not uuid)
- */
 export const jobApi = {
   searchJobs: async (
     query: string,
@@ -32,7 +21,6 @@ export const jobApi = {
     return response.data;
   },
 
-  // Match against the active CV (or cvUuid) and persist the result.
   saveJob: async (jobId: string, cvUuid?: string): Promise<SavedJobResponse> => {
     const params: Record<string, string> = {};
     if (cvUuid) params.cvUuid = cvUuid;
@@ -54,11 +42,13 @@ export const jobApi = {
     return response.data;
   },
 
-  /**
-   * Remove a saved job. The backend deletes by the job's EXTERNAL id
-   * (the SerpAPI id), NOT the saved-job uuid.
-   */
   deleteSavedJob: async (jobExternalId: string): Promise<void> => {
     await client.delete(`/job/saved/${encodeURIComponent(jobExternalId)}`);
+  },
+
+  evictCache: async (query: string, location?: string): Promise<void> => {
+    const params: Record<string, string> = { query };
+    if (location) params.location = location;
+    await client.delete('/job/admin/cache', { params });
   },
 };

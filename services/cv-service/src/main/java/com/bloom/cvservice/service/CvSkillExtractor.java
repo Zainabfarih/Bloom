@@ -39,16 +39,14 @@ public class CvSkillExtractor {
     @Value("${cv.ai.hf.skill-extractor-url}")
     private String hfModelUrl;
 
-    private static final String GEMINI_MODEL    = "gemini-2.5-flash";
-    private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
-    private static final int    MAX_CHARS       = 8000;
+    @Value("${cv.ai.gemini.base-url:https://generativelanguage.googleapis.com/v1beta/models/}")
+    private String geminiBaseUrl;
+
+    private static final String GEMINI_MODEL = "gemini-2.5-flash";
+    private static final int    MAX_CHARS    = 8000;
 
     private final ObjectMapper mapper;
-
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+    private final HttpClient httpClient;
 
     public List<String> extract(String cvText) {
         if (cvText == null || cvText.isBlank()) return List.of();
@@ -67,7 +65,7 @@ public class CvSkillExtractor {
                     "thinkingConfig",   Map.of("thinkingBudget", 0)
             ));
 
-            String url = GEMINI_BASE_URL + GEMINI_MODEL + ":generateContent?key="
+            String url = geminiBaseUrl + GEMINI_MODEL + ":generateContent?key="
                     + URLEncoder.encode(geminiApiKey.trim(), StandardCharsets.UTF_8);
 
             HttpResponse<String> resp = httpClient.send(

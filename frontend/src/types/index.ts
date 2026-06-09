@@ -76,7 +76,7 @@ export interface SkillsDTO {
 export interface CvResponse {
   uuid: string;
   title: string;
-  source: 'UPLOADED' | 'MANUAL';
+  source: 'UPLOAD' | 'MANUAL';
   originalFilename?: string;
   skills: string[];
   active: boolean;
@@ -108,6 +108,7 @@ export interface ManualCvRequest {
   experiences: string[];
   educations: string[];
   skills: string[];
+  pdfBase64: string;
 }
 
 // ============================================

@@ -1,4 +1,4 @@
-package com.bloom.jobservice.service;
+package com.bloom.cvservice.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -20,64 +20,65 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class JobSkillExtractorTest {
+class CvSkillExtractorTest {
 
     @Mock private HttpClient httpClient;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private JobSkillExtractor extractor;
+    private CvSkillExtractor extractor;
 
     @BeforeEach
     void setUp() {
-        extractor = new JobSkillExtractor(objectMapper, httpClient);
+        extractor = new CvSkillExtractor(objectMapper, httpClient);
         ReflectionTestUtils.setField(extractor, "geminiApiKey", "test-key");
         ReflectionTestUtils.setField(extractor, "hfModelUrl", "http://localhost/hf");
         ReflectionTestUtils.setField(extractor, "geminiBaseUrl", "http://localhost/gemini/");
     }
 
     @Test
-    @DisplayName("Description vide → liste vide sans appel réseau")
-    void blank_description_returns_empty_without_http_call() throws Exception {
-        assertThat(extractor.extract("")).isEmpty();
-        assertThat(extractor.extract("   ")).isEmpty();
-        assertThat(extractor.extract(null)).isEmpty();
+    @DisplayName("Texte vide → liste vide sans appel réseau")
+    void blank_text_returns_empty_without_http_call() throws Exception {
+        assertThat(extractor.extract("  ")).isEmpty();
         verify(httpClient, never()).send(any(), any());
     }
 
     @Test
     @DisplayName("Gemini 200 → skills parsés et triés")
     void gemini_success_returns_sorted_skills() throws Exception {
-        HttpResponse<String> resp = stringResponse(200, geminiEnvelope("{\"skills\":[\"Spring Boot\",\"Java\"]}"));
+        HttpResponse<String> resp = stringResponse(200, geminiEnvelope("{\"skills\":[\"Java\",\"Docker\"]}"));
         when(httpClient.<String>send(any(), any())).thenReturn(resp);
 
-        assertThat(extractor.extract("Looking for Java and Spring Boot")).containsExactly("Java", "Spring Boot");
+        List<String> skills = extractor.extract("CV avec Java et Docker");
+
+        assertThat(skills).containsExactly("Docker", "Java");
     }
 
     @Test
     @DisplayName("Gemini non-200 → fallback Hugging Face")
     void gemini_failure_falls_back_to_huggingface() throws Exception {
         HttpResponse<String> gemini = stringResponse(500, "error");
-        HttpResponse<String> hf = stringResponse(200, "{\"skills\":[\"Docker\",\"Kubernetes\"]}");
+        HttpResponse<String> hf = stringResponse(200, "{\"skills\":[\"Python\",\"SQL\"]}");
         when(httpClient.<String>send(any(), any())).thenReturn(gemini).thenReturn(hf);
 
-        assertThat(extractor.extract("DevOps role")).containsExactly("Docker", "Kubernetes");
-        verify(httpClient, times(2)).send(any(), any());
+        List<String> skills = extractor.extract("CV Python SQL");
+
+        assertThat(skills).containsExactly("Python", "SQL");
+        verify(httpClient, org.mockito.Mockito.times(2)).send(any(), any());
     }
 
     @Test
     @DisplayName("Gemini lève une exception → fallback Hugging Face")
     void gemini_exception_falls_back_to_huggingface() throws Exception {
-        HttpResponse<String> hf = stringResponse(200, "{\"skills\":[\"Python\"]}");
+        HttpResponse<String> hf = stringResponse(200, "{\"skills\":[\"React\"]}");
         when(httpClient.<String>send(any(), any()))
                 .thenThrow(new IOException("network down"))
                 .thenReturn(hf);
 
-        assertThat(extractor.extract("Data role")).containsExactly("Python");
+        assertThat(extractor.extract("CV React")).containsExactly("React");
     }
 
     @Test
@@ -87,7 +88,7 @@ class JobSkillExtractorTest {
         HttpResponse<String> hf = stringResponse(503, "error");
         when(httpClient.<String>send(any(), any())).thenReturn(gemini).thenReturn(hf);
 
-        assertThat(extractor.extract("role")).isEmpty();
+        assertThat(extractor.extract("CV")).isEmpty();
     }
 
     private String geminiEnvelope(String modelText) throws Exception {
