@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bloom-config
+  namespace: bloom
+data:
+  CONFIG_SERVER_URL: "http://config-server:8888"
+  EUREKA_URI: "http://discovery-server:8761/eureka/"
+  ADMIN_SERVER_URL: "http://admin-server:8090"
+  ZIPKIN_URL: "http://zipkin:9411/api/v2/spans"
+  GEMINI_MODEL_ROADMAP: "gemini-3.5-flash"
+  FRONTEND_URL: "http://140.238.123.230"

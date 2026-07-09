@@ -1,0 +1,17 @@
+name: Bloom CD — discovery-server
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/discovery-server/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/cd-reusable.yaml
+    secrets: inherit
+    with:
+      image: bloom-discovery-server
+      context: infrastructure/discovery-server
+      deployment: discovery-server

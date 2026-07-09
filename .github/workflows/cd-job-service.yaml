@@ -1,0 +1,17 @@
+name: Bloom CD — job-service
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/job-service/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/cd-reusable.yaml
+    secrets: inherit
+    with:
+      image: bloom-job-service
+      context: services/job-service
+      deployment: job-service

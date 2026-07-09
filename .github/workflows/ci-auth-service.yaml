@@ -1,0 +1,103 @@
+name: Bloom CI — auth-service
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'services/auth-service/**'
+      - '.github/workflows/ci-auth-service.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-auth-service-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # -U force la re-résolution des dépendances : évite les "package does not exist"
+  # quand le cache Maven de CI contient un marqueur d'échec (.lastUpdated) pour une
+  # dépendance récemment ajoutée (ici spring-boot-starter-webmvc-test).
+  MVN: "mvn -B --no-transfer-progress -U"
+
+jobs:
+
+  level1-compile:
+    name: "[auth-service] Niveau 1 — Compilation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Purge cache Maven empoisonné (webmvc-test + marqueurs d'échec)
+        run: |
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-webmvc-test
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-starter-webmvc-test
+          find ~/.m2/repository -name '*.lastUpdated' -delete 2>/dev/null || true
+      - name: Compile
+        run: $MVN clean compile
+        working-directory: services/auth-service
+
+  level2-tests:
+    name: "[auth-service] Niveau 2 — Tests"
+    needs: level1-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Purge cache Maven empoisonné (webmvc-test + marqueurs d'échec)
+        run: |
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-webmvc-test
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-starter-webmvc-test
+          find ~/.m2/repository -name '*.lastUpdated' -delete 2>/dev/null || true
+      - name: Tests
+        run: $MVN test
+        working-directory: services/auth-service
+        env:
+          SPRING_CLOUD_CONFIG_FAIL_FAST: 'false'
+          SPRING_CLOUD_CONFIG_ENABLED: 'false'
+          SPRING_CLOUD_CONFIG_IMPORT_CHECK_ENABLED: 'false'
+
+      - name: Upload surefire reports (on failure)
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-auth-service
+          path: services/auth-service/target/surefire-reports/
+          retention-days: 5
+
+  level3-build:
+    name: "[auth-service] Niveau 3 — Build final"
+    needs: level2-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Purge cache Maven empoisonné (webmvc-test + marqueurs d'échec)
+        run: |
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-webmvc-test
+          rm -rf ~/.m2/repository/org/springframework/boot/spring-boot-starter-webmvc-test
+          find ~/.m2/repository -name '*.lastUpdated' -delete 2>/dev/null || true
+      - name: Vérification version SNAPSHOT
+        run: |
+          VERSION=$($MVN help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ "$VERSION" != *-SNAPSHOT ]]; then
+            echo "La version '$VERSION' doit être un SNAPSHOT sur une PR"
+            exit 1
+          fi
+        working-directory: services/auth-service
+      - name: Build final
+        run: $MVN verify -DskipTests
+        working-directory: services/auth-service

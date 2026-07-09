@@ -1,0 +1,161 @@
+flowchart LR
+
+  subgraph CV["Gestion du CV"]
+    direction TB
+    UC_Upload(["Uploader son CV (PDF)"])
+    UC_ManualCv@{ label: "Créer un CV manuellement" }
+    UC_ListCv(["Consulter ses CV"])
+    UC_Analyze@{ label: "Consulter l'analyse ATS et recommandations" }
+    UC_Skills@{ label: "Consulter les compétences extraites" }
+    UC_DownloadCv@{ label: "Télécharger son CV" }
+    UC_DeleteCv(["Supprimer un CV"])
+  end
+
+  subgraph JOBS["Offres d'emploi & Stages"]
+    direction TB
+    UC_Search(["Rechercher des offres"])
+    UC_JobDetail(["Consulter le détail d'une offre"])
+    UC_SaveJob(["Sauvegarder une offre"])
+    UC_Score@{ label: "Voir son score de correspondance" }
+    UC_Missing@{ label: "Voir les compétences manquantes" }
+    UC_ListSaved(["Consulter ses offres sauvegardées"])
+    UC_DeleteSaved(["Retirer une offre sauvegardée"])
+  end
+
+  subgraph ROADMAP["Roadmap personnalisée"]
+    direction TB
+    UC_GenRoadmap(["Générer une roadmap pour une offre cible"])
+    UC_ViewRoadmap(["Consulter ses roadmaps"])
+    UC_Progress(["Suivre sa progression"])
+    UC_UpdateStep@{ label: "Mettre à jour une étape" }
+    UC_Resources@{ label: "Accéder aux ressources d'apprentissage" }
+  end
+
+  subgraph PROFILE["Profil étudiant"]
+    direction TB
+    UC_ViewProfile(["Consulter son profil"])
+    UC_EditProfile@{ label: "Modifier son profil" }
+    UC_DeleteAccount@{ label: "Supprimer son compte" }
+  end
+
+  subgraph ADMIN["Administration"]
+    direction TB
+    UC_Stats(["Consulter les statistiques"])
+    UC_ListUsers(["Lister les utilisateurs"])
+    UC_RecoverUser@{ label: "Restaurer un utilisateur" }
+    UC_DeleteUser@{ label: "Supprimer un utilisateur" }
+    UC_EvictCache(["Purger le cache des offres"])
+  end
+
+  subgraph SYS["BLOOM"]
+    direction TB
+    UC_Home@{ label: "Découvrir la plateforme (accueil / à propos)" }
+    Register(["S'inscrire"])
+    Auth@{ label: "S'authentifier" }
+    UC_Verify@{ label: "Vérifier son adresse email" }
+    UC_Resend@{ label: "Renvoyer l'email de vérification" }
+    UC_ForgotPwd@{ label: "Demander la réinitialisation du mot de passe" }
+    UC_ResetPwd@{ label: "Définir un nouveau mot de passe (via lien)" }
+    UC_Logout@{ label: "Se déconnecter" }
+    UC_Dashboard(["Consulter son tableau de bord"])
+    CV
+    JOBS
+    ROADMAP
+    PROFILE
+    ADMIN
+  end
+
+  Etudiant(["Étudiant"]) --- UC_Home & Register & Auth & UC_Verify & UC_ForgotPwd & UC_ResetPwd & UC_Logout & UC_Dashboard & UC_Upload & UC_ManualCv & UC_ListCv & UC_Search & UC_SaveJob & UC_ListSaved & UC_GenRoadmap & UC_ViewRoadmap & UC_ViewProfile
+  Admin(["Administrateur"]) --- UC_Stats & UC_ListUsers & UC_EvictCache
+
+  UC_Resend -. extend .-> UC_Verify
+
+  UC_Analyze -. extend .-> UC_ListCv
+  UC_Skills -. extend .-> UC_ListCv
+  UC_DownloadCv -. extend .-> UC_ListCv
+  UC_DeleteCv -. extend .-> UC_ListCv
+
+  UC_JobDetail -. extend .-> UC_Search
+  UC_Score -. extend .-> UC_SaveJob
+  UC_Missing -. extend .-> UC_SaveJob
+  UC_DeleteSaved -. extend .-> UC_ListSaved
+
+  UC_Progress -. extend .-> UC_ViewRoadmap
+  UC_UpdateStep -. extend .-> UC_Progress
+  UC_Resources -. extend .-> UC_ViewRoadmap
+
+  UC_EditProfile -. extend .-> UC_ViewProfile
+  UC_DeleteAccount -. extend .-> UC_ViewProfile
+
+  UC_RecoverUser -. extend .-> UC_ListUsers
+  UC_DeleteUser -. extend .-> UC_ListUsers
+
+  UC_ResetPwd -. include .-> UC_ForgotPwd
+  UC_GenRoadmap -. include .-> UC_SaveJob
+
+  UC_Home@{ shape: stadium }
+  Auth@{ shape: stadium }
+  UC_Verify@{ shape: stadium }
+  UC_Resend@{ shape: stadium }
+  UC_ForgotPwd@{ shape: stadium }
+  UC_ResetPwd@{ shape: stadium }
+  UC_Logout@{ shape: stadium }
+  UC_ManualCv@{ shape: stadium }
+  UC_Analyze@{ shape: stadium }
+  UC_Skills@{ shape: stadium }
+  UC_DownloadCv@{ shape: stadium }
+  UC_Score@{ shape: stadium }
+  UC_Missing@{ shape: stadium }
+  UC_UpdateStep@{ shape: stadium }
+  UC_Resources@{ shape: stadium }
+  UC_EditProfile@{ shape: stadium }
+  UC_DeleteAccount@{ shape: stadium }
+  UC_RecoverUser@{ shape: stadium }
+  UC_DeleteUser@{ shape: stadium }
+
+  UC_Home:::ucStyle
+  Register:::ucStyle
+  UC_Verify:::ucStyle
+  UC_Resend:::ucStyle
+  UC_ForgotPwd:::ucStyle
+  UC_ResetPwd:::ucStyle
+  UC_Logout:::ucStyle
+  UC_Dashboard:::ucStyle
+  UC_Upload:::ucStyle
+  UC_ManualCv:::ucStyle
+  UC_ListCv:::ucStyle
+  UC_Analyze:::ucStyle
+  UC_Skills:::ucStyle
+  UC_DownloadCv:::ucStyle
+  UC_DeleteCv:::ucStyle
+  UC_Search:::ucStyle
+  UC_JobDetail:::ucStyle
+  UC_SaveJob:::ucStyle
+  UC_Score:::ucStyle
+  UC_Missing:::ucStyle
+  UC_ListSaved:::ucStyle
+  UC_DeleteSaved:::ucStyle
+  UC_GenRoadmap:::ucStyle
+  UC_ViewRoadmap:::ucStyle
+  UC_Progress:::ucStyle
+  UC_UpdateStep:::ucStyle
+  UC_Resources:::ucStyle
+  UC_ViewProfile:::ucStyle
+  UC_EditProfile:::ucStyle
+  UC_DeleteAccount:::ucStyle
+  UC_Stats:::ucStyle
+  UC_ListUsers:::ucStyle
+  UC_RecoverUser:::ucStyle
+  UC_DeleteUser:::ucStyle
+  UC_EvictCache:::ucStyle
+
+  classDef ucStyle fill:#fdd835,stroke:#fbc02d,stroke-width:2px,color:#000
+  style Auth fill:#ffb300,stroke:#f57f17,stroke-width:3px,color:#000,font-weight:bold
+  style CV fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style JOBS fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style ROADMAP fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style PROFILE fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style ADMIN fill:transparent,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5
+  style Etudiant fill:transparent,stroke:none,color:#2e7d32,font-weight:bold
+  style Admin fill:transparent,stroke:none,color:#2e7d32,font-weight:bold
+  style SYS fill:transparent,stroke:#888,stroke-width:2px,color:#333

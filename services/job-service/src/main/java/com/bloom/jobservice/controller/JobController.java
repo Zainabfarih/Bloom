@@ -1,0 +1,110 @@
+package com.bloom.jobservice.controller;
+
+import com.bloom.jobservice.dto.*;
+import com.bloom.jobservice.service.JobService;
+import com.bloom.jobservice.service.SavedJobService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Endpoints REST des offres : recherche (cache 24h), détail + skills,
+ * favoris avec matching, écart de compétences et purge de cache (admin).
+ */
+@RestController
+@RequestMapping("/api/job")
+@RequiredArgsConstructor
+@Tag(name = "Jobs", description = "Search jobs and manage favourites")
+public class JobController {
+
+    private final JobService jobService;
+    private final SavedJobService savedJobService;
+
+    @GetMapping("/search")
+    @Operation(summary = "Search jobs — résultats SerpAPI, cached 24h, sans skills (lazy extraction)")
+    public ResponseEntity<JobSearchResponse> search(
+            @RequestParam String query,
+            @RequestParam(required = false) String location) {
+
+        return ResponseEntity.ok(jobService.searchJobs(query, location));
+    }
+
+    @GetMapping("/{jobId}")
+    @Operation(summary = "Détail d'un job + skills extraits — nécessite un search préalable")
+    public ResponseEntity<JobDetailResponse> getJobDetail(
+            @PathVariable String jobId) {
+
+        return ResponseEntity.ok(jobService.getJobDetail(jobId));
+    }
+
+    @GetMapping("/skill-gap")
+    @Operation(summary = "Internal — consumed by roadmap-service via Feign")
+    public ResponseEntity<SkillGapResponse> getSkillGap(
+            @RequestParam Long userId,
+            @RequestParam Long targetJobId) {
+
+        return ResponseEntity.ok(savedJobService.getSkillGap(userId, targetJobId));
+    }
+
+    @PostMapping("/saved/{jobId}")
+    @Operation(summary = "Save a job by its jobId (déjà présent en cache via /search) — "
+            + "skill matching vs CV actif (ou cvUuid fourni), score calculé server-side")
+    public ResponseEntity<SavedJobResponse> save(
+            @PathVariable String jobId,
+            @RequestParam(required = false) UUID cvUuid,
+            Authentication auth,
+            @RequestHeader("Authorization") String bearerToken) {
+
+        Long userId = (Long) auth.getPrincipal();
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(savedJobService.saveJob(userId, jobId, cvUuid, bearerToken));
+    }
+
+    @GetMapping("/saved")
+    @Operation(summary = "Get all my saved jobs ordered by compatibility score DESC")
+    public ResponseEntity<List<SavedJobResponse>> getMySaved(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return ResponseEntity.ok(savedJobService.getSavedJobs(userId));
+    }
+
+    @GetMapping("/saved/{uuid}")
+    @Operation(summary = "Get one saved job by UUID — consumed by roadmap-service")
+    public ResponseEntity<SavedJobResponse> getSavedJobByUuid(
+            @PathVariable UUID uuid,
+            Authentication auth) {
+
+        Long userId = (Long) auth.getPrincipal();
+        return ResponseEntity.ok(savedJobService.getByUuid(userId, uuid));
+    }
+
+    @DeleteMapping("/saved/{jobExternalId}")
+    @Operation(summary = "Remove a job from favourites")
+    public ResponseEntity<Void> removeSavedJob(
+            @PathVariable String jobExternalId,
+            Authentication auth) {
+
+        Long userId = (Long) auth.getPrincipal();
+        savedJobService.removeSavedJob(userId, jobExternalId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/admin/cache")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Force evict Redis cache (search + skills) pour une query donnée")
+    public ResponseEntity<Void> evictCache(
+            @RequestParam String query,
+            @RequestParam(required = false) String location) {
+
+        jobService.evictCache(query, location);
+        return ResponseEntity.noContent().build();
+    }
+}

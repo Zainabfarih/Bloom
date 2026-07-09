@@ -1,0 +1,286 @@
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.dropzone {
+  border: 2px dashed var(--border-2);
+  border-radius: var(--radius-lg);
+  padding: 44px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dropzone:hover,
+.dropzoneDrag {
+  border-color: var(--accent);
+  background: var(--accent-glow2);
+}
+
+.dropzoneIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  border: 1px solid rgba(139,92,246,0.30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.dropzone p {
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.dropzone span {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.dropzone small {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.uploadError {
+  font-size: 13px;
+  color: var(--red);
+  background: var(--red-glow);
+  border: 1px solid rgba(244,63,94,0.22);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px;
+  color: var(--text-3);
+  font-size: 14px;
+}
+
+.cvList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cvCard {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.cvCard:hover { border-color: var(--border-2); }
+
+.cvCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  gap: 16px;
+}
+
+.cvCardInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cvIcon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: var(--radius-xs);
+  background: var(--accent-glow);
+  border: 1px solid rgba(139,92,246,0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+.cvName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cvDate {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activeBadge { margin-left: 4px; }
+
+.cvCardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cvExpanded {
+  border-top: 1px solid var(--border);
+  padding: 24px;
+  background: var(--bg-3);
+  animation: fadeIn 0.2s ease;
+}
+
+.analysisEmpty {
+  font-size: 13px;
+  color: var(--text-3);
+  padding: 20px 0;
+}
+
+/* Analysis */
+.analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.scoreCircle {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.scoreArc {
+  width: 64px;
+  height: 64px;
+  transform: rotate(-90deg);
+}
+
+.scoreNumber {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.scoreLabel {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.scoreDesc {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+
+.analysisSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.analysisSection h4 {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.analysisSection p {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.7;
+}
+
+.strengthList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.strengthList li {
+  font-size: 13px;
+  color: var(--text-2);
+  padding-left: 16px;
+  position: relative;
+}
+.strengthList li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--green);
+  font-size: 12px;
+}
+
+.issueItem {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid;
+  margin-bottom: 6px;
+  background: var(--bg-4);
+}
+.issue_high   { border-color: var(--red);    }
+.issue_medium { border-color: var(--yellow); }
+.issue_low    { border-color: var(--accent); }
+
+.issueMessage {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+.issueSuggestion {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+
+.skillBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

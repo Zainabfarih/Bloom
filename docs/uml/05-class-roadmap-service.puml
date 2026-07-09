@@ -1,0 +1,40 @@
+@startuml class-roadmap-service
+
+class Roadmap {
+  -Long id
+  -Long userId
+  -Long targetJobId
+  -String targetJobTitle
+  -Integer progressPercentage
+  -LocalDateTime createdAt
+}
+
+class RoadmapStep {
+  -Long id
+  -String title
+  -String description
+  -Integer orderIndex
+  -StepStatus status
+  -String estimatedDuration
+}
+
+class Resource {
+  -Long id
+  -String title
+  -String url
+  -String type
+}
+
+enum StepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ACCEPTED
+  REJECTED
+}
+
+Roadmap "1" *-- "1..*" RoadmapStep
+RoadmapStep "1" *-- "0..*" Resource
+RoadmapStep "1" --> "1" StepStatus
+
+@enduml

@@ -1,0 +1,111 @@
+@startuml deployment-diagram
+skinparam componentStyle rectangle
+
+node "Navigateur de l'utilisateur" as Browser {
+  artifact "SPA React (build statique)" as SPA
+}
+
+cloud "Oracle Cloud (OCI)" {
+
+  node "OKE — Kubernetes Cluster" as OKE {
+
+    node "Pod: frontend" {
+      artifact "Nginx + React build" as FE
+    }
+
+    node "Pod: api-gateway" {
+      artifact "api-gateway.jar :8080" as GW
+    }
+
+    node "Pod: discovery-server" {
+      artifact "eureka :8761" as EUREKA
+    }
+    node "Pod: config-server" {
+      artifact "config-server :8888" as CFG
+    }
+    node "Pod: admin-server" {
+      artifact "admin-server :8090" as ADMIN
+    }
+
+    node "Pod: auth-service" {
+      artifact "auth-service.jar :8081" as AUTH
+    }
+    node "Pod: cv-service" {
+      artifact "cv-service.jar :8082" as CV
+    }
+    node "Pod: job-service" {
+      artifact "job-service.jar :8083" as JOB
+    }
+    node "Pod: roadmap-service" {
+      artifact "roadmap-service.jar :8085" as ROADMAP
+    }
+
+    node "Observabilité" as OBS {
+      artifact "Prometheus :9090" as PROM
+      artifact "Grafana :3001" as GRAF
+      artifact "Loki :3100" as LOKI
+      artifact "Zipkin :9411" as ZIPKIN
+    }
+  }
+
+  node "OCIR (Container Registry)" as OCIR {
+    artifact "Docker images" as IMAGES
+  }
+}
+
+node "Upstash (Redis managé, externe)" as UPSTASH {
+  database "Redis" as REDIS
+}
+
+node "Azure Database for PostgreSQL (externe)" as AZURE {
+  database "bloom_cv" as DBC
+  database "bloom_jobs" as DBJ
+}
+
+node "Supabase PostgreSQL (externe)" as SUPABASE {
+  database "bloom_auth" as DBA
+  database "bloom_roadmap" as DBR
+}
+
+cloud "APIs externes" {
+  artifact "SerpAPI (Google Jobs)" as SERP
+  artifact "Google Gemini" as GEMINI
+}
+
+Browser --> FE : HTTPS
+FE --> GW : REST /api
+GW --> AUTH
+GW --> CV
+GW --> JOB
+GW --> ROADMAP
+
+AUTH ..> EUREKA
+CV ..> EUREKA
+JOB ..> EUREKA
+ROADMAP ..> EUREKA
+GW ..> EUREKA
+
+AUTH ..> CFG
+CV ..> CFG
+JOB ..> CFG
+ROADMAP ..> CFG
+
+JOB --> REDIS
+JOB --> SERP
+CV --> GEMINI
+JOB --> GEMINI
+ROADMAP --> GEMINI
+
+AUTH --> DBA
+CV --> DBC
+JOB --> DBJ
+ROADMAP --> DBR
+
+PROM ..> GW : scrape /actuator
+GRAF --> PROM
+GRAF --> LOKI
+ADMIN ..> AUTH
+
+OCIR ..> OKE : pull images (CI/CD)
+
+@enduml

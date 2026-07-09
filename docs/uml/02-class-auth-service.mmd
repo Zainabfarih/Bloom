@@ -1,0 +1,47 @@
+classDiagram
+  class User {
+    -Long id
+    -String firstName
+    -String lastName
+    -String email
+    -String password
+    -boolean enabled
+    -boolean locked
+    -int failedLoginAttempts
+    -boolean deleted
+    -boolean emailVerified
+    -Role role
+    -LocalDateTime createdAt
+  }
+
+  class RefreshToken {
+    -Long id
+    -String token
+    -Instant expiryDate
+    -boolean revoked
+  }
+
+  class PasswordResetToken {
+    -Long id
+    -String token
+    -Instant expiryDate
+    -boolean used
+  }
+
+  class EmailVerificationToken {
+    -Long id
+    -String token
+    -Instant expiryDate
+    -boolean used
+  }
+
+  class Role {
+    <<enumeration>>
+    STUDENT
+    ADMIN
+  }
+
+  User "1" --> "1" Role
+  User "1" *-- "0..*" RefreshToken
+  User "1" *-- "0..*" PasswordResetToken
+  User "1" *-- "0..*" EmailVerificationToken
