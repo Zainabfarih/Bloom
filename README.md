@@ -9,8 +9,6 @@
 - Zainab Farih
 - Assia Rguibi
 
-> Course: Développement de Plateformes — Prof. EL HAMLAOUI Mahmoud — 2025/2026
-
 ---
 
 ## Table of Contents
