@@ -1,67 +1,125 @@
-# Bloom — Smart Career & Learning Platform for Students
+<div align="center">
 
-> Match your skills to real jobs. Know exactly what to learn next.
+# 🌱 Bloom
 
----
+### Smart Career & Learning Platform for Students
 
-## Team
+Match your skills to real jobs. Know exactly what to learn next.
 
-- Zainab Farih
-- Assia Rguibi
+[![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.1.1-6DB33F?logo=spring&logoColor=white)](https://spring.io/projects/spring-cloud)
+[![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-OKE-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Terraform](https://img.shields.io/badge/Terraform-OCI-844FBA?logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![License](https://img.shields.io/badge/License-Academic%20Project-lightgrey)](#)
+
+**[Live Demo](http://140.238.123.230)** · **[Zainab Farih](https://www.linkedin.com/in/zainab-farih/)** · **[Assia Rguibi](https://www.linkedin.com/in/assia-rguibi-a6318732b/)**
+
+Made with ❤️ by **Zainab Farih** and **Assia Rguibi**
+
+</div>
 
 ---
 
 ## Table of Contents
 
-1. [Introduction](#introduction)
-2. [Actors & Roles](#actors--roles)
-3. [Features](#features)
-4. [Repository Structure](#repository-structure)
-5. [Technology Stack](#technology-stack)
-6. [Microservices](#microservices)
-7. [Testing](#testing)
-8. [Security](#security)
-9. [Documentation](#documentation)
-10. [Containerization](#containerization)
-11. [Orchestration](#orchestration)
-12. [Infrastructure as Code](#infrastructure-as-code)
-13. [CI/CD](#cicd)
-14. [Observability](#observability)
-15. [Deployment](#deployment)
-16. [Conclusion](#conclusion)
+- [About the Project](#about-the-project)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Repository Structure](#repository-structure)
+- [Microservices](#microservices)
+- [Getting Started](#getting-started)
+- [Testing & Quality](#testing--quality)
+- [Security](#security)
+- [API Documentation](#api-documentation)
+- [Infrastructure & Deployment](#infrastructure--deployment)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [Observability](#observability)
+- [Accessing the Live Deployment](#accessing-the-live-deployment)
+- [Contact](#contact)
 
 ---
 
-## Introduction
+## About the Project
 
 Students usually get stuck on two questions: *what should I learn next?* and *which jobs am I actually qualified for?* **Bloom** answers both in one place.
 
-A student creates an account, uploads their CV, and the platform extracts their skills using AI. Those skills are then matched against real job offers, showing a clear compatibility score and the exact skills that are missing. From any skill gap, the student can generate a personalized, AI-built learning roadmap and track their progress to completion.
+A student creates an account, uploads their CV, and the platform extracts their skills using AI. Those skills are matched against real job offers, surfacing a clear compatibility score and the exact skills that are missing. From any skill gap, the student can generate a personalized, AI-built learning roadmap and track their progress to completion.
 
-The project is built as a set of **Spring Boot microservices** behind a single **API Gateway**, with a **React** frontend. It ships with centralized configuration, service discovery, JWT security, a full CI/CD pipeline, container orchestration on **Oracle Kubernetes Engine (OKE)**, infrastructure provisioned with **Terraform**, and a complete monitoring stack.
-
----
-
-## Actors & Roles
+Bloom is built as a set of **Spring Boot microservices** behind a single **API Gateway**, with a **React** frontend — shipping with centralized configuration, service discovery, JWT security, a full CI/CD pipeline, container orchestration on **Oracle Kubernetes Engine (OKE)**, infrastructure provisioned with **Terraform**, and a complete observability stack.
 
 | Actor | Role |
 |---|---|
 | **Student** | Registers, verifies email, uploads a CV, explores jobs, generates roadmaps, tracks progress |
 | **Admin** | Manages users and the job cache, monitors the platform |
-| **AI (Google Gemini)** | Extracts skills from CVs, analyzes CV quality, generates learning roadmaps |
-| **Jobs API (SerpApi)** | External source of real job and internship offers |
+| **AI · Google Gemini** | Extracts skills from CVs, analyzes CV quality, generates learning roadmaps |
+| **Jobs API · SerpApi** | External source of real job and internship offers |
 
 ---
 
-## Features
+## Key Features
 
-- **Account & email verification** — registration with mandatory email verification; no account is usable until verified. Password reset by email.
-- **CV upload & skill extraction** — upload a PDF or fill a manual form; the AI extracts skills, experience and education.
-- **Job matching** — match extracted skills against real offers, ranked by a compatibility score, with a clear skill-gap view.
-- **Skill gap analysis** — see exactly which skills are missing for a given offer.
-- **AI learning roadmaps** — generate a step-by-step roadmap for a target job, with curated resources and progress tracking.
-- **CV analysis** — AI feedback on CV structure and content with an ATS-style quality score.
-- **Admin dashboard** — user management and platform statistics.
+- 🔐 **Account & email verification** — mandatory email verification, no account usable until confirmed; password reset by email
+- 📄 **CV upload & skill extraction** — upload a PDF or fill a manual form; AI extracts skills, experience and education
+- 🎯 **Job matching** — real offers ranked by a compatibility score, with a clear skill-gap view
+- 📊 **Skill gap analysis** — see exactly which skills are missing for a given offer
+- 🗺️ **AI learning roadmaps** — step-by-step roadmap for a target job, with curated resources and progress tracking
+- 📝 **CV analysis** — AI feedback on structure and content with an ATS-style quality score
+- 🛠️ **Admin dashboard** — user management and platform statistics
+
+---
+
+## Architecture
+
+```
+                                   ┌────────────────────┐
+                                   │      Frontend       │
+                                   │   React + Vite      │
+                                   └──────────┬───────────┘
+                                              │ HTTPS
+                                   ┌──────────▼───────────┐
+                                   │      API Gateway      │
+                                   │  routing + JWT check   │
+                                   └──────────┬───────────┘
+                     ┌───────────────┬────────┼────────┬───────────────┐
+                     ▼               ▼        ▼        ▼               ▼
+              ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌──────────────────┐
+              │auth-service│ │ cv-service │ │job-service │ │ roadmap-service   │
+              └────────────┘ └────────────┘ └────────────┘ └──────────────────┘
+                     │               │             │                  │
+                     └───────────────┴──────┬──────┴──────────────────┘
+                                            ▼
+                          Eureka (discovery) · Config Server · Redis
+```
+
+Every business service registers with **Eureka** and pulls its configuration from the **Config Server**. Each service owns its own database — no service reads another service's tables directly. The frontend never talks to a business service directly; every request goes through the **API Gateway**, which validates the JWT and forwards a trusted internal secret downstream.
+
+Full UML (use-case, class, sequence, deployment) is available in [`docs/uml/`](./docs/uml).
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Backend** | Java 25 · Spring Boot 4.0 · Spring Cloud 2025.1.1 (Config, Eureka, Gateway) |
+| **Frontend** | React 19.2 · TypeScript 6.0 · Vite 8 · React Router 7 · Zustand 5 · React Query 5 · React Hook Form 7 + Zod 4 · Axios 1.17 |
+| **Database** | PostgreSQL — one database per service (Supabase / Azure, managed) |
+| **Persistence** | Spring Data JPA + Flyway migrations |
+| **Connection Pool** | HikariCP |
+| **Security** | Spring Security + JWT (JJWT 0.12.6), BCrypt password hashing |
+| **AI** | Google Gemini — skill extraction, CV analysis, roadmap generation |
+| **Cache** | Redis — job offers |
+| **Containers** | Docker (multi-stage builds), nginx for the frontend |
+| **Orchestration** | Kubernetes (Oracle OKE) + Kustomize |
+| **IaC** | Terraform (Oracle Cloud Infrastructure) |
+| **CI/CD** | GitHub Actions + Oracle Container Registry (OCIR) |
+| **Observability** | Prometheus, Grafana, Loki + Promtail, Zipkin |
 
 ---
 
@@ -91,60 +149,65 @@ development-platform-bloom/
 
 ---
 
-## Technology Stack
-
-| Layer | Choice |
-|---|---|
-| **Backend** | Spring Boot + Spring Cloud (Config, Eureka, Gateway) |
-| **Frontend** | React + TypeScript, Vite, React Router, Zustand, React Query, React Hook Form + Zod, Axios |
-| **Database** | PostgreSQL — one database per service (managed: Supabase / Azure) |
-| **Persistence** | Spring Data JPA + Flyway migrations (schema + seed) |
-| **Connection pool** | HikariCP |
-| **Security** | Spring Security + JWT, BCrypt password hashing |
-| **AI** | Google Gemini (skill extraction, CV analysis, roadmap generation) |
-| **Cache** | Redis (job offers) |
-| **Containers** | Docker (multi-stage builds), nginx for the frontend |
-| **Orchestration** | Kubernetes (Oracle OKE) + Kustomize |
-| **IaC** | Terraform (Oracle Cloud Infrastructure) |
-| **CI/CD** | GitHub Actions + Oracle Container Registry (OCIR) |
-| **Observability** | Prometheus, Grafana, Loki + Promtail, Zipkin |
-
----
-
 ## Microservices
-
-The frontend talks **only** to the API Gateway, which validates the JWT and routes requests. Each service registers with **Eureka** and pulls its configuration from the **Config Server**. Each business service owns its own database — no service reads another service's tables directly.
 
 ### Business services
 
-| Service | Port | Database | Content |
+| Service | Port | Database | Responsibility |
 |---|---|---|---|
-| **auth-service** | 8081 | PostgreSQL (Supabase) | Registration, email verification, login, JWT issuing/refresh, password reset, user & admin management |
-| **cv-service** | 8082 | `bloom_cv` (Azure) | CV upload (PDF) and manual CV, AI skill extraction, AI CV analysis (ATS score) |
-| **job-service** | 8083 | `bloom_job` (Azure) | Job search & fetch, skill matching, skill-gap detection, saved jobs, Redis caching |
-| **roadmap-service** | 8085 | PostgreSQL (Supabase) | AI-generated learning roadmaps, steps & resources, progress tracking |
+| `auth-service` | `8081` | PostgreSQL (Supabase) | Registration, email verification, login, JWT issuing/refresh, password reset, user & admin management |
+| `cv-service` | `8082` | `bloom_cv` (Azure) | CV upload (PDF) and manual CV, AI skill extraction, AI CV analysis (ATS score) |
+| `job-service` | `8083` | `bloom_job` (Azure) | Job search & fetch, skill matching, skill-gap detection, saved jobs, Redis caching |
+| `roadmap-service` | `8085` | PostgreSQL (Supabase) | AI-generated learning roadmaps, steps & resources, progress tracking |
 
 ### Infrastructure services
 
-| Service | Port | Content |
+| Service | Port | Responsibility |
 |---|---|---|
-| **api-gateway** | 8080 | Single entry point — routing + JWT validation, forwards an internal trust secret to downstream services |
-| **discovery-server** | 8761 | Eureka service registry |
-| **config-server** | 8888 | Centralized configuration served from `config-repo/` |
-| **admin-server** | 8090 | Spring Boot Admin — live service health dashboard |
+| `api-gateway` | `8080` | Single entry point — routing + JWT validation, forwards an internal trust secret downstream |
+| `discovery-server` | `8761` | Eureka service registry |
+| `config-server` | `8888` | Centralized configuration served from `config-repo/` |
+| `admin-server` | `8090` | Spring Boot Admin — live service health dashboard |
 
 ---
 
-## Testing
+## Getting Started
 
-Tests use **JUnit 5**, **Mockito** and **MockMvc**, with **JaCoCo** for coverage (enforced 80% threshold on the verify phase).
+### Prerequisites
 
-- **auth-service** — 109 tests across controllers, services, security (JWT filter/service), mapper, entity and exception handling.
-- **cv-service** — controller, service, mapper, security filter, PDF/skill extraction.
-- **job-service** — controller, matching & saved-jobs services, skill extraction, mapper, entity, security filter.
-- **roadmap-service** — controller, service and roadmap-generation logic.
+- Docker & Docker Compose
+- Java 25 (for local backend development)
+- Node.js 18+ (for local frontend development)
 
-Run tests for a service:
+### Run the full stack locally
+
+```bash
+git clone <repository-url>
+cd development-platform-bloom
+cp .env.example .env      # fill in DB URLs, JWT secret, API keys
+docker compose up --build
+```
+
+The stack spins up every service, the gateway, discovery, config server, admin server, Redis and the monitoring stack on a shared Docker network with health checks.
+
+| Environment | URL |
+|---|---|
+| Frontend (Vite dev) | http://localhost:5173 |
+| API Gateway | http://localhost:8080 |
+| Production | http://140.238.123.230 |
+
+---
+
+## Testing & Quality
+
+Tests use **JUnit 5**, **Mockito** and **MockMvc**, with **JaCoCo** enforcing an **80% coverage threshold** on the verify phase.
+
+| Service | Coverage highlights |
+|---|---|
+| `auth-service` | 109 tests across controllers, services, security (JWT filter/service), mapper, entity and exception handling |
+| `cv-service` | Controller, service, mapper, security filter, PDF/skill extraction |
+| `job-service` | Controller, matching & saved-jobs services, skill extraction, mapper, entity, security filter |
+| `roadmap-service` | Controller, service and roadmap-generation logic |
 
 ```bash
 cd services/auth-service
@@ -157,74 +220,57 @@ Coverage reports are generated under each service's `target/site/jacoco/`.
 
 ## Security
 
-- **Password hashing** with **BCrypt** (strength 12) — no plain-text passwords.
-- **Stateless JWT authentication** — the gateway validates the token; downstream services trust the gateway through an internal shared secret.
-- **Mandatory email verification** — accounts cannot log in until the email is verified.
-- **Role-based access control** with `@EnableMethodSecurity` and `@PreAuthorize("hasRole('ADMIN')")` on admin endpoints.
-- **Input validation** with Bean Validation (`@Valid`) on request bodies; consistent error responses without leaking technical details.
-- **Parameterized queries** through Spring Data JPA — no string-built SQL.
-- **No secrets in source code** — all secrets injected via environment variables / Kubernetes Secrets.
+- **BCrypt** password hashing (strength 12) — no plain-text passwords
+- **Stateless JWT authentication** — the gateway validates the token; downstream services trust the gateway via an internal shared secret
+- **Mandatory email verification** before an account can log in
+- **Role-based access control** with `@EnableMethodSecurity` and `@PreAuthorize("hasRole('ADMIN')")` on admin endpoints
+- **Input validation** with Bean Validation (`@Valid`); consistent error responses that don't leak technical details
+- **Parameterized queries** through Spring Data JPA — no string-built SQL
+- **No secrets in source code** — everything injected via environment variables / Kubernetes Secrets
 
 ---
 
-## Documentation
+## API Documentation
 
-| Type | Tooling | Where |
+| Type | Tooling | Location |
 |---|---|---|
-| **REST API** | Swagger / OpenAPI (springdoc) | `/swagger-ui.html` on each business service |
-| **Code** | Javadoc (`mvn javadoc:javadoc`) | `target/reports/apidocs/` per service |
-| **Design** | PlantUML diagrams | `docs/uml/` (use case, class, sequence, deployment) |
+| REST API | Swagger / OpenAPI (springdoc) | `/swagger-ui.html` on each business service |
+| Code | Javadoc (`mvn javadoc:javadoc`) | `target/reports/apidocs/` per service |
+| Design | PlantUML diagrams | [`docs/uml/`](./docs/uml) — use case, class, sequence, deployment |
 
-Swagger UI per service (local):
+Swagger UI (local):
 
-- auth-service — http://localhost:8081/swagger-ui.html
-- cv-service — http://localhost:8082/swagger-ui.html
-- job-service — http://localhost:8083/swagger-ui.html
-- roadmap-service — http://localhost:8085/swagger-ui.html
+- `auth-service` → http://localhost:8081/swagger-ui.html
+- `cv-service` → http://localhost:8082/swagger-ui.html
+- `job-service` → http://localhost:8083/swagger-ui.html
+- `roadmap-service` → http://localhost:8085/swagger-ui.html
 
-In production, services sit behind the gateway and are not individually exposed.
-
----
-
-## Containerization
-
-Every service and the frontend is containerized with **Docker**.
-
-- **Multi-stage Dockerfiles** — build the JAR (or the Vite bundle) in one stage, run on a slim runtime image in the next, keeping images small.
-- **Frontend** is served by **nginx**, which also proxies `/api` to the gateway and provides SPA fallback routing.
-- **`docker-compose.yml`** spins up the full stack locally (services, gateway, discovery, config, admin, Redis, and the monitoring stack) on a shared Docker network with health checks.
-
-```bash
-cp .env.example .env   # fill in DB URLs, JWT secret, API keys
-docker compose up --build
-# Frontend → http://localhost:5173 (Vite dev) or the compose-mapped port
-```
+> In production, services sit behind the gateway and are not individually exposed.
 
 ---
 
-## Orchestration
+## Infrastructure & Deployment
 
-The production workloads run on **Kubernetes (Oracle OKE)**, managed with **Kustomize**.
+### Containerization
 
-- **`k8s/base/`** — Deployments, Services and ConfigMaps for every component (business services, infrastructure, and the observability stack), all in the `bloom` namespace.
-- **`k8s/overlays/`** — environment-specific overlays (`local`, `prod`).
-- Centralized configuration is mounted into the Config Server via a `configMapGenerator` built from `config-repo/`.
-- The frontend is exposed through a **LoadBalancer** service backed by the OCI load balancer.
+Every service and the frontend is containerized with **Docker**, using multi-stage builds to keep images small. The frontend is served by **nginx**, which proxies `/api` to the gateway and provides SPA fallback routing.
 
----
+### Orchestration
 
-## Infrastructure as Code
+Production workloads run on **Kubernetes (Oracle OKE)**, managed with **Kustomize**:
 
-The cloud infrastructure is fully provisioned with **Terraform** (`terraform/oci/`) on **Oracle Cloud Infrastructure**.
+- [`k8s/base/`](./k8s/base) — Deployments, Services and ConfigMaps for every component, all in the `bloom` namespace
+- [`k8s/overlays/`](./k8s/overlays) — environment-specific overlays (`local`, `prod`)
+- Centralized configuration mounted into the Config Server via a `configMapGenerator` built from `config-repo/`
+- The frontend is exposed through a **LoadBalancer** Service backed by the OCI load balancer
 
-**Network (`network.tf`)** — a dedicated **VCN** (`10.0.0.0/16`) with:
-- a **public subnet** for the Kubernetes API endpoint (`10.0.0.0/28`),
-- a **public subnet** for the load balancer (`10.0.1.0/24`),
-- a **private subnet** for the worker nodes (`10.0.10.0/24`, no public IPs),
-- an **Internet Gateway** (public traffic), a **NAT Gateway** (private outbound) and a **Service Gateway** (Oracle services),
-- security lists opening only the required ports (80/443 public, 6443 for the K8s API, internal traffic within the VCN).
+### Infrastructure as Code
 
-**Cluster (`oke.tf`)** — an OKE **BASIC_CLUSTER** with a managed node pool on flexible shapes (ARM/AMD), pods CIDR `10.244.0.0/16` and services CIDR `10.96.0.0/16`.
+The cloud infrastructure is fully provisioned with **Terraform** ([`terraform/oci/`](./terraform/oci)) on **Oracle Cloud Infrastructure**:
+
+- A dedicated **VCN** (`10.0.0.0/16`) with a public subnet for the Kubernetes API endpoint, a public subnet for the load balancer, and a private subnet for worker nodes (no public IPs)
+- **Internet Gateway**, **NAT Gateway** and **Service Gateway**, with security lists opening only the required ports
+- An OKE **BASIC_CLUSTER** with a managed node pool on flexible shapes (ARM/AMD)
 
 ```bash
 cd terraform/oci
@@ -232,114 +278,114 @@ terraform init
 terraform apply
 ```
 
+### Production topology
+
+- **Only the frontend is publicly exposed**, fronted by the OCI Load Balancer
+- All other components — API Gateway, Eureka, Config Server, Admin Server, and the full observability stack — remain **internal** (`ClusterIP`)
+- **Worker nodes** live in a private subnet, reaching the internet only via the NAT Gateway
+- Databases are **managed PostgreSQL** (Supabase / Azure) over TLS; **Redis** provides the job cache
+
 ---
 
-## CI/CD
+## CI/CD Pipeline
 
-Automated with **GitHub Actions** — one CI and one CD pipeline per service (`.github/workflows/`).
+Automated with **GitHub Actions** — one CI and one CD workflow per service ([`.github/workflows/`](./.github/workflows)):
 
-- **CI** (`ci-*.yaml`) runs on pull requests, in levels: **install → lint/compile → test → build**. The build fails if tests or coverage thresholds fail.
-- **CD** (`cd-*.yaml`) runs on merge to `main`: builds a Docker image, pushes it to **Oracle Container Registry (OCIR)**, and deploys to **OKE** via `kubectl set image` + rollout. A reusable workflow (`cd-reusable.yaml`) is shared across services.
-- Path filters ensure only the affected service is rebuilt on a change.
-
-**Tools:** GitHub Actions, Docker Buildx, OCIR, `kubectl` / OKE.
+- **CI** (`ci-*.yaml`) runs on pull requests through staged levels: **install → lint/compile → test → build**, failing the build if tests or coverage thresholds don't pass
+- **CD** (`cd-*.yaml`) runs on merge to `main`: builds a Docker image, pushes it to **Oracle Container Registry (OCIR)**, and deploys to **OKE** via `kubectl set image` + rollout, using a shared reusable workflow (`cd-reusable.yaml`)
+- Path filters ensure only the affected service is rebuilt on a given change
 
 ---
 
 ## Observability
 
-A full observability stack runs alongside the services (locally and in the cluster):
-
-| Tool | Port (local) | Purpose |
+| Tool | Local Port | Purpose |
 |---|---|---|
-| **Prometheus** | 9090 | Scrapes metrics from each service via Spring Boot Actuator |
-| **Grafana** | 3001 | Dashboards for the gateway and platform overview |
-| **Loki + Promtail** | 3100 | Aggregates and queries logs from all containers |
-| **Zipkin** | 9411 | Distributed tracing across services |
-| **Spring Boot Admin** | 8090 | Live health view of every registered service |
+| **Prometheus** | `9090` | Scrapes metrics from each service via Spring Boot Actuator |
+| **Grafana** | `3001` | Dashboards for the gateway and platform overview |
+| **Loki + Promtail** | `3100` | Aggregates and queries logs from all containers |
+| **Zipkin** | `9411` | Distributed tracing across services |
+| **Spring Boot Admin** | `8090` | Live health view of every registered service |
 
-For example, **Grafana** visualizes request rates, latencies and JVM metrics; **Zipkin** lets you follow a single request as it travels gateway → service → service.
+Grafana visualizes request rates, latencies and JVM metrics; Zipkin traces a single request as it travels gateway → service → service.
 
-> In production these dashboards are **internal only** (`ClusterIP`) — only the frontend is publicly exposed. Access them in the cluster with `kubectl port-forward` (e.g. `kubectl port-forward svc/grafana 3001:3000 -n bloom`).
-
----
-
-## Deployment
-
-**Live app (Oracle Cloud):** http://140.238.123.230
-
-The platform is deployed on **Oracle Kubernetes Engine (OKE)** inside a Terraform-provisioned VCN:
-
-- **Only the frontend is exposed publicly** — it is the single `LoadBalancer` Service, fronted by the **OCI Load Balancer** (public LB subnet) and reachable at the public IP.
-- **All other components are internal** (`ClusterIP`): the API Gateway, discovery (Eureka), config-server, admin-server and the full observability stack (Grafana, Prometheus, Loki, Zipkin) are **not** publicly exposed. The frontend's nginx proxies `/api` to the gateway internally; internal dashboards are reached via `kubectl port-forward`.
-- **Worker nodes** run in a **private subnet** with no public IPs; they reach the internet only through the **NAT Gateway**, which keeps the internal services unreachable from outside the cluster.
-- The **Kubernetes API** is exposed on its own public subnet, restricted by security lists.
-- Internal service-to-service traffic stays inside the VCN (`10.0.0.0/16`); only ports 80/443 are open to the public.
-- Databases are **managed PostgreSQL** instances (Supabase / Azure) reached over TLS, and **Redis** provides the job cache.
-
-| Environment | Frontend URL |
-|---|---|
-| Local (Vite dev) | http://localhost:5173 |
-| Production (OKE) | http://140.238.123.230 |
+> In production these dashboards are **internal only** and reached via `kubectl port-forward` — only the frontend is publicly exposed.
 
 ---
 
-## Conclusion
+## Accessing the Live Deployment
 
-Bloom delivers a complete microservices platform that connects what a student knows to what the job market wants. It covers the full lifecycle: requirements, UML design, secured REST APIs, a relational database per service with migrations, tested services with coverage gates, automated CI/CD, infrastructure as code, container orchestration, and a monitored production deployment on the cloud. The architecture is modular by design — new services can be added without touching the existing ones.
+Internal dashboards and the deployed services' API docs are reached through `kubectl port-forward` — the URL stays `localhost`, but the data comes from the **production** cluster. Each command runs in its own terminal (`Ctrl+C` to stop).
 
----
-
-## Accessing Deployed Services (port-forward)
-
-In production only the frontend is publicly exposed. The internal dashboards and the deployed services' API docs are reached through `kubectl port-forward` — the URL stays `localhost` but the data comes from the **production** cluster. Each command runs in its own terminal and stays open while in use (`Ctrl+C` to stop).
+<details>
+<summary><b>Platform dashboards</b></summary>
 
 ```bash
 # Eureka (discovery)
 kubectl port-forward svc/discovery-server 8761:8761 -n bloom
-#  -> http://localhost:8761
+# -> http://localhost:8761
 
 # Spring Boot Admin
 kubectl port-forward svc/admin-server 8090:8090 -n bloom
-#  -> http://localhost:8090
+# -> http://localhost:8090
 
-# Grafana   (the service listens on 3000 inside the cluster)
+# Grafana (service listens on 3000 inside the cluster)
 kubectl port-forward svc/grafana 3001:3000 -n bloom
-#  -> http://localhost:3001
+# -> http://localhost:3001
 
 # Prometheus
 kubectl port-forward svc/prometheus 9090:9090 -n bloom
-#  -> http://localhost:9090
+# -> http://localhost:9090
 
 # Zipkin
 kubectl port-forward svc/zipkin 9411:9411 -n bloom
-#  -> http://localhost:9411
+# -> http://localhost:9411
 
-# API Gateway (to hit the production API directly)
+# API Gateway
 kubectl port-forward svc/api-gateway 8080:8080 -n bloom
-#  -> http://localhost:8080
+# -> http://localhost:8080
 ```
 
-### Swagger / OpenAPI of the deployed services
+</details>
+
+<details>
+<summary><b>Swagger / OpenAPI of deployed services</b></summary>
 
 ```bash
 # auth-service
 kubectl port-forward svc/auth-service 8081:8081 -n bloom
-#  -> http://localhost:8081/swagger-ui.html
+# -> http://localhost:8081/swagger-ui.html
 
 # cv-service
 kubectl port-forward svc/cv-service 8082:8082 -n bloom
-#  -> http://localhost:8082/swagger-ui.html
+# -> http://localhost:8082/swagger-ui.html
 
 # job-service
 kubectl port-forward svc/job-service 8083:8083 -n bloom
-#  -> http://localhost:8083/swagger-ui.html
+# -> http://localhost:8083/swagger-ui.html
 
 # roadmap-service
 kubectl port-forward svc/roadmap-service 8085:8085 -n bloom
-#  -> http://localhost:8085/swagger-ui.html
+# -> http://localhost:8085/swagger-ui.html
 ```
+
+</details>
 
 ---
 
-> *"Don't just apply for jobs. Know exactly what you need to get there."*
+## Contact
+
+<div align="center">
+
+[![Zainab Farih](https://img.shields.io/badge/Zainab%20Farih-LinkedIn-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/zainab-farih/)
+[![Assia Rguibi](https://img.shields.io/badge/Assia%20Rguibi-LinkedIn-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/assia-rguibi-a6318732b/)
+
+</div>
+
+---
+
+<div align="center">
+
+*"Don't just apply for jobs. Know exactly what you need to get there."*
+
+</div>
